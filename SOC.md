@@ -1,143 +1,73 @@
-# 🔐 SOC Lab - Proyecto de Seguridad
+# 🔐 SOC
 
-Infraestructura de **Security Operations Center (SOC)** diseñada para la detección de intrusiones, monitorización de sistemas, automatización de alertas y gestión de incidentes.
+## 🛡️ 1. Detección de intrusiones
 
----
-
-# 🛡️ 1. Detección de Intrusiones
-
-Sistema encargado de detectar comportamientos sospechosos o ataques dentro de la red.
-
-- Monitorización de eventos de red
-- Análisis de logs
-- Generación de alertas de seguridad
+Sistema de detección de intrusiones dentro de la infraestructura.
 
 ---
 
-# 📊 2. Dashboard de Monitorización
+## 📊 2. Dashboard
 
-Visualización en tiempo real del estado de la infraestructura y métricas del sistema.
+Herramientas de visualización y monitorización.
 
-- **Grafana** (contenedor Docker)  
-  Visualización de métricas mediante dashboards.
-
-- **Prometheus** (contenedor Docker)  
-  Recolección y almacenamiento de métricas.
+- **Grafana** (contenedor Docker)
+- **Prometheus** (contenedor Docker)
 
 ---
 
-# 🔥 3. Firewall
+## 🔥 3. Firewall
 
-Sistema encargado de controlar y filtrar el tráfico de red.
-
-- **OpenWRT**
-- Implementación en:
-  - Contenedor **LXC**
-  - Máquina virtual
+- **OpenWRT**  
+  - LXC / máquina
 
 ---
 
-# 🤖 4. Playbooks (Automatización)
+## 🤖 4. Playbooks (Scripts)
 
-Scripts diseñados para automatizar respuestas ante eventos de seguridad.
+Automatización de alertas.
 
 - Scripts en **Bash**
-- Automatización de alertas
-- Envío de correos electrónicos mediante **SMTP**
+- Envío de alertas por **correo electrónico mediante SMTP**
 
 ---
 
-# ⚙️ 5. SOAR - Plataforma Web
+## 🌐 5. SOAR - Páginas web
 
-Sistema web para la gestión y automatización de incidentes de seguridad.
-
-### Tecnologías
+Tecnologías utilizadas:
 
 - **HTML**
 - **CSS**
 - **PHP seguro**
-- **JavaScript** (posible implementación)
+- **JavaScript** (quizás)
 
-### Base de datos
+Base de datos del formulario:
 
 - **MySQL**
 - **MariaDB**
 
-### Funcionalidades
+---
 
-- Formularios de reporte de incidentes
-- Gestión de alertas
-- Integración con playbooks
+## 🖥️ 6. Infraestructura
+
+- **Proxmox**
+- **Máquina para backup**
+- **Posible cluster**
 
 ---
 
-# 🖥️ 6. Infraestructura
+## 💾 7. Backup
 
-Plataforma donde se ejecuta todo el laboratorio SOC.
-
-- **Proxmox** como hipervisor
-- Máquina dedicada para **backups**
-- Posible implementación de **cluster**
+- **Máquina para backup**
+- **Posible cluster**
 
 ---
 
-# 💾 7. Backup
+## 🧑‍💻 8. Máquina supervisada
 
-Sistema de copias de seguridad de la infraestructura.
-
-- Máquina dedicada para **backup**
-- Posible **cluster de almacenamiento**
+- **Windows AD**
 
 ---
 
-# 🧑‍💻 8. Máquina Supervisada
+## 🎯 9. Intrusión final
 
-Sistema monitorizado dentro del SOC.
-
-- **Windows Server**
-- **Active Directory (AD)**
-
----
-
-# 🎯 9. Intrusión Final (Simulación)
-
-Simulación de un ataque real para comprobar la capacidad de detección del SOC.
-
-- Equipos atacantes: **nuestros PCs**
-- Evaluación del sistema de detección y respuesta
-
----
-
-# 🧱 Arquitectura General
-
-```
-Atacante (PC)
-     │
-     ▼
-Firewall (OpenWRT)
-     │
-     ▼
-Infraestructura (Proxmox)
-     │
-     ▼
-Máquinas monitorizadas (Windows AD)
-     │
-     ▼
-SOC
- ├── Prometheus
- ├── Grafana
- ├── Playbooks
- └── Plataforma SOAR
-```
-
----
-
-# 🎯 Objetivo del Proyecto
-
-Construir un **SOC funcional en laboratorio** capaz de:
-
-- Detectar intrusiones
-- Monitorizar sistemas
-- Automatizar respuestas
-- Gestionar incidentes de seguridad
-- Analizar ataques simulados
+- **Nuestros PCs**
