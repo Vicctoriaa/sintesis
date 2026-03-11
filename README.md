@@ -1,165 +1,221 @@
-OBJETIVOS
-Arquitectura y sistemas
-1.        Especificar objetivos y las funcionalidades. [1p]
-2.        Especificar listado de tareas. [1p]
-3.        Asignar roles y responsabilidades del equipo. [1p]
-4.        El diagrama de la red. [1p]
-5.        Las tecnologías a implementar. [1p]
-6.        El hardware que se va a utilizar. [1p]
-7.        Los servicios a implementar. [1p]
-8.        Los sistemas operativos a utilizar. [1p]
-9.        Establecer un diagrama de Gantt con los objetivos y resultados a alcanzar. [1p]
+FASE 1: Planificación del Proyecto
 
-Objetivos – FASE 1
- 
-Planificación del proyecto. Definir un calendario detallado con los objetivos, resultados a alcanzar, requisitos técnicos tanto hardware como de software.
- 
-Nota: Para llevar a cabo esta actividad es recomendable seguir el esquema de Gestión de Proyectos.
- 
-A modo de resumen:
-1.       Especificar objetivos y las funcionalidades.
-2.       Especificar listado de tareas.
-3.       Asignar roles y responsabilidades del equipo.
-4.       El diagrama de la red.
-5.       Las tecnologías a implementar.
-6.       El hardware que se va a utilizar.
-7.       Los servicios a implementar.
-8.       Los sistemas operativos .a utilizar.
-9.       Establecer un diagrama de Gantt con los objetivos y resultados a alcanzar.
-10.   Documentar en GitHub.
- 
+Objetivo:
+Planificar el proyecto definiendo un calendario detallado con los objetivos, resultados a alcanzar, y requisitos técnicos (hardware y software).
+
+Esquema resumido:
+
+Especificar objetivos y funcionalidades.
+
+Especificar listado de tareas.
+
+Asignar roles y responsabilidades del equipo.
+
+Diseñar el diagrama de la red.
+
+Seleccionar tecnologías a implementar.
+
+Definir el hardware a utilizar.
+
+Identificar los servicios a implementar.
+
+Determinar los sistemas operativos a utilizar.
+
+Establecer un diagrama de Gantt con objetivos y resultados.
+
+Documentar en GitHub.
+
 Funcionalidades
- 
-Siguiendo la plantilla que tienes a continuación, completa la matriz de requisitos y funcionalidades asignando una prioridad a cada función y una fecha aproximada de entrega. Se todo lo concreto posible.
-ID
-Prioridad
-Objetivo
-Funcionalidad
-Disparador
-Fecha Entrega
-Estado
-ID0
-Media
-Registrar usuarios en la página
-Deberá crearse un sistema de registro de usuarios y posterior login que guarde información individual del usuario
-Un botón en la esquina superior te llevará a la pantalla de registro/login
-20/02/2025
-Pendiente
+ID	Prioridad	Objetivo	Funcionalidad	Disparador	Fecha Entrega	Estado
+ID0	Media	Registrar usuarios en la página	Crear sistema de registro y login que almacene información individual del usuario	Botón en la esquina superior → pantalla registro/login	20/02/2025	Pendiente
 
+Leyenda:
 
- 
-Donde:
-·         ID: número asignado de tarea
-·         Prioridad: Prioridad que se le da a la tarea, puede ser Baja, Media o Alta. Ver esquema de Gestión de Proyecto.
-·         Requisito: Narrativa de cliente que describe en que consiste el requerimiento de proyecto.
-·         Funcionalidad: La funcionalidad de la app que va a cumplir con el objetivo de requisito previamente descrito.
-·         Disparador: evento u objeto (gráfico o no) que va a hacer que se realice la función descrita.
-·         Fecha: aproximada de entrega
-·         Estado: Activo, pendiente o cancelado.
- 
-Listado de tareas
- 
-Kanban cuyo significado es letrero o tarjeta en japonés, es una metodología de gestión de proyectos que se centra en la visualización del trabajo, la limitación del trabajo en curso y la mejora continua.
-Es una metodología fácil de entender y usar que usaremos para la gestión de tareas. Por eso, estamos utilizando Trello.
- 
- 
-¿Qué tenemos que hacer?
-Revisa las funcionalidades de tu proyecto, piensa en como dividir el trabajo de tu proyecto en distintos ítems o tareas fácilmente realizables.
-A continuación, deberás plantear cada uno de los objetivos y tareas hasta cumplir este objetivo. Por cada tarea deberás asignar un integrante del proyecto que va a realizar esa tarea, más adelante asignaremos fechas concretas.
-Utiliza el Trello para plantear cada uno de los objetivos y tareas. Recuerda que cada tarea se convertirá en una tarjeta de Trello que se irá revisando durante la fase de producción.
-A continuación, tienes un ejemplo de cómo hacerlo:
+ID: Número de tarea.
+
+Prioridad: Baja, Media o Alta.
+
+Objetivo: Qué se busca conseguir.
+
+Funcionalidad: Qué hará la aplicación.
+
+Disparador: Evento que activa la función.
+
+Fecha: Entrega aproximada.
+
+Estado: Activo, Pendiente o Cancelado.
+
+Listado de Tareas (Metodología Kanban)
+
+Usamos Trello para gestionar las tareas visualmente. Cada tarea es una tarjeta que se revisará durante la producción.
+
+Ejemplo de planificación de tareas
+
 Objetivo 1: Implementar un servidor web
-1.1
-[Maria] Instalación y configuración básica del servidor
-CP1.2 – Se ha instalado y configurado un sistema operativo en red
-1.2
-[Enrique] Configurar la política de usuarios y privilegios
-CP1.2 – Se ha instalado y configurado un sistema operativo en red
-1.3
-[Enrique] Instalación y configuración de los servicios web NGINX, MariaDB, PHP8.2, PHPMYADMIN.
-CP3.1.1 – Se configura y se garantiza el funcionamiento de un servicio de servidor web
 
- 
+1.1 [Maria] Instalación y configuración básica del servidor
+CP1.2 – Sistema operativo instalado y configurado en red
+
+1.2 [Enrique] Configuración de política de usuarios y privilegios
+CP1.2 – Sistema operativo instalado y configurado en red
+
+1.3 [Enrique] Instalación y configuración de servicios web: NGINX, MariaDB, PHP 8.2, PHPMYADMIN
+CP3.1.1 – Servicios web funcionando correctamente
+
 Objetivo 2: Programar la front-page
-2.1
-[Jan] Crear la estructura del index.html con CSS
-CP2.1.6 – Los ficheros de lenguaje de marcas empleados tienen un código correcto y adecuado, transmiten al usuario la información correctamente y ofrecen una buena experiencia de usuario a nivel gráfico.
-2.2
-[Maria] Crear el header y el footer comunes de todas las páginas
-CP2.1.6 – Los ficheros de lenguaje de marcas empleados tienen un código correcto y adecuado, transmiten al usuario la información correctamente y ofrecen una buena experiencia de usuario a nivel gráfico.
-2.3
-[Enrique] Programar el formulario de contacto de la frontpage
-CP2.1.6 – Los ficheros de lenguaje de marcas empleados tienen un código correcto y adecuado, transmiten al usuario la información correctamente y ofrecen una buena experiencia de usuario a nivel gráfico.
 
- 
-Arquitectura del sistema
- 
-Uno de los fundamentos de arquitectura es la identificación de componentes: esto se refiere a determinar las piezas clave o módulos que compondrán una aplicación web. Cada componente realiza funciones específicas y se integra con otros para lograr el conjunto completo de características y servicios requeridos por la aplicación.
-La arquitectura obligatoriamente será cliente-servidor, pero debes tener en cuenta los requerimientos técnicos para realizar el trabajo. Identifica el software, la versión a utilizar, el puerto de funcionamiento y el dominio si así lo requiera y explica brevemente para que se va a utilizar esa tecnología.
-Componente de sistema
-Tecnología o framework
- (elige de la lista o añade el que vayas a utilizar)
-Versión
-Puerto
-Descripción de uso o requisitos
-Enlace a documentación o información adicional
-Hardware
-Modelo, procesador, RAM, espacio en disco, adaptadores de red
- 
-no
- 
- 
-Sistema operativo
-¿Qué SO? ¿libre o propietario?
- 
-no
- 
- 
-Interfaz de usuario (Frontend)
-HTML, CSS, JavaScript, bibliotecas y frameworks como React, Angular o Vue.js.
- 
- 
- 
- 
-Lógica de negocio (Backend)
-Lenguajes de programación como PHP, Python, Java, Node.js, frameworks como Django, Flask, Spring (Java), Express (Node.js).
- 
- 
- 
- 
-Servidor web
-Apache, Nginx, Microsoft IIS.
- 
- 
- 
- 
-Base de datos
-MySQL, PostgreSQL, MongoDB, Firebase, SQLite.
- 
- 
- 
- 
-Sistema gestor de base de datos
-MySQLWorkbench, PHPMyAdmin, Access, Oracle SQL, MongoDB Atlas.
- 
- 
-Servicios de APIs
-REST, GraphQL, SOAP o APIs concretas
- 
- 
-Diagrama de la base de datos
- 
-Si tu proyecto requiere de una DB tienes que plasmar el diagrama entidad-relación de la misma
- 
-Realiza el diagrama entidad-relación de la DB de tu aplicación web. Recuerda pensar en:
-·         ¿Qué datos son necesarios para mi aplicación?
-·         ¿Qué datos voy a pedir al usuario y que tipos de usuarios voy a tener?
-·         ¿Qué tipo de dato necesitaré para cada información? (Aquí tienes la documentación oficial de MySQL)
-·         ¿Qué clave primaria voy a implantar en cada tabla? ¿Cómo las relacionaré entre ellas?
- 
-Nota: Para el diagrama puedes usar cualquier herramienta gráfica como draw.io, Microsoft Visio o Lucidchart.
+2.1 [Jan] Crear la estructura del index.html con CSS
+CP2.1.6 – Código correcto, experiencia de usuario adecuada
 
- 
-estructura básica de la red
- 
-Diseña el diagrama de la red de tu proyecto.
+2.2 [Maria] Crear header y footer comunes
+CP2.1.6 – Código correcto, experiencia de usuario adecuada
+
+2.3 [Enrique] Programar formulario de contacto de la frontpage
+CP2.1.6 – Código correcto, experiencia de usuario adecuada
+
+Arquitectura del Sistema
+Componentes y Tecnologías
+Componente	Tecnología / Framework	Versión	Puerto	Descripción de uso	Documentación
+Hardware	PC / Servidor	-	-	Procesador, RAM, Disco, adaptadores de red	-
+Sistema Operativo	Linux / Windows	Última	-	Soporte para servicios y backend	-
+Interfaz de Usuario (Frontend)	HTML, CSS, JavaScript, React	Última	-	Construcción de la UI, interacción con el usuario	React Docs
+
+Lógica de negocio (Backend)	PHP, Node.js, Python	Última	8080	Procesamiento de datos y reglas de negocio	-
+Servidor web	NGINX / Apache	Última	80/443	Servir la web a los clientes	-
+Base de datos	MySQL / PostgreSQL	8.x	3306	Almacenamiento de datos de la aplicación	MySQL Docs
+
+Sistema gestor de base de datos	PHPMyAdmin / MySQL Workbench	Última	8080	Gestión visual de la base de datos	-
+Servicios de APIs	REST / GraphQL	Última	3000	Comunicación entre frontend y backend	-
+Diagrama de la Base de Datos
+
+Se recomienda usar herramientas gráficas como draw.io, Lucidchart o Microsoft Visio para diseñar el diagrama entidad-relación (ER).
+Considerar:
+
+Qué datos necesita la aplicación.
+
+Tipos de usuarios y datos a solicitar.
+
+Tipos de datos y claves primarias.
+
+Relaciones entre tablas.
+
+Estructura Básica de la Red
+
+Se debe diseñar un diagrama de red que incluya:
+
+Servidores (web, base de datos, archivos).
+
+Switches y routers (si aplica).
+
+Segmentación de red por VLANs o subredes.
+
+Conexión cliente-servidor.
+
+Si quieres, puedo hacer una versión aún más visual y elegante, con tablas de colores, íconos de roles, y un mini-diagrama de red integrado, lista para entregar o presentar en PDF/Word.
+
+¿Quieres que haga eso?
+
+si
+
+Perfecto 😎, vamos a hacer una versión mucho más visual, limpia y profesional, lista para entregar o exportar a PDF/Word. La organizaré con colores, íconos, tablas claras y mini-diagramas, manteniendo toda la información que me diste. Aquí te la dejo:
+
+🌐 Proyecto: Arquitectura y Sistemas
+🎯 Objetivos Generales
+
+Definir, planificar y documentar la arquitectura y los sistemas de la aplicación, incluyendo hardware, software, roles, tareas y planificación temporal.
+
+📅 FASE 1: Planificación del Proyecto
+
+Objetivo:
+Planificar el proyecto definiendo un calendario detallado con los objetivos, resultados a alcanzar, y requisitos técnicos (hardware y software).
+
+Esquema resumido:
+
+Especificar objetivos y funcionalidades.
+
+Listado de tareas.
+
+Asignar roles y responsabilidades del equipo.
+
+Diagrama de la red.
+
+Tecnologías a implementar.
+
+Hardware a utilizar.
+
+Servicios a implementar.
+
+Sistemas operativos a utilizar.
+
+Diagrama de Gantt con objetivos y resultados.
+
+Documentación en GitHub.
+
+🛠 Funcionalidades y Requisitos
+ID	Prioridad	Objetivo	Funcionalidad	Disparador	Fecha Entrega	Estado
+ID0	🔶 Media	Registrar usuarios en la página	Crear sistema de registro y login que almacene información individual del usuario	Botón superior → pantalla registro/login	20/02/2025	⏳ Pendiente
+
+Leyenda:
+
+🔴 Alta | 🔶 Media | 🟢 Baja
+
+⏳ Pendiente | ✅ Activo | ❌ Cancelado
+
+📋 Listado de Tareas (Kanban / Trello)
+Objetivo 1: Implementar un servidor web
+Tarea	Responsable	Resultado esperado
+1.1 Instalación y configuración básica del servidor	Maria	CP1.2 – Sistema operativo instalado y configurado en red
+1.2 Configuración de política de usuarios y privilegios	Enrique	CP1.2 – Sistema operativo instalado y configurado en red
+1.3 Instalación y configuración de servicios web (NGINX, MariaDB, PHP8.2, PHPMYADMIN)	Enrique	CP3.1.1 – Servicios web funcionando correctamente
+Objetivo 2: Programar la front-page
+Tarea	Responsable	Resultado esperado
+2.1 Crear estructura de index.html con CSS	Jan	CP2.1.6 – Código correcto y experiencia de usuario adecuada
+2.2 Crear header y footer comunes	Maria	CP2.1.6 – Código correcto y experiencia de usuario adecuada
+2.3 Programar formulario de contacto	Enrique	CP2.1.6 – Código correcto y experiencia de usuario adecuada
+🏗 Arquitectura del Sistema
+Componentes y Tecnologías
+Componente	Tecnología / Framework	Versión	Puerto	Descripción	Documentación
+💻 Hardware	PC / Servidor	-	-	Procesador, RAM, Disco, adaptadores de red	-
+🖥 Sistema Operativo	Linux / Windows	Última	-	Soporte para servicios y backend	-
+🎨 Frontend	HTML, CSS, JavaScript, React	Última	-	Interfaz de usuario	React
+
+⚙ Backend	PHP, Node.js, Python	Última	8080	Lógica de negocio	-
+🌐 Servidor Web	NGINX / Apache	Última	80/443	Servir la web	-
+🗄 Base de Datos	MySQL / PostgreSQL	8.x	3306	Almacenamiento de datos	MySQL
+
+🛠 Gestión BD	PHPMyAdmin / MySQL Workbench	Última	8080	Gestión visual de la base de datos	-
+🔌 APIs	REST / GraphQL	Última	3000	Comunicación frontend-backend	-
+🗃 Diagrama de Base de Datos (ER)
+
+Recomendado usar draw.io, Lucidchart o Visio.
+Debe incluir:
+
+Tablas de usuarios, productos, pedidos, roles, etc.
+
+Tipos de datos y claves primarias.
+
+Relaciones entre tablas.
+
+(Aquí puedes insertar un mini-diagrama visual con íconos para cada tabla si quieres que quede más atractivo.)
+
+🌐 Estructura Básica de la Red
+
+Diagrama sugerido:
+
+[Clientes] ---Internet--- [Router] --- [Switch] --- [Servidor Web]
+                                    |--- [Servidor BD]
+                                    |--- [Servidor de Archivos]
+
+Notas:
+
+Segmentación de red por VLANs o subredes si aplica.
+
+Conexión cliente-servidor asegurada.
+
+Considerar firewalls y seguridad básica.
+
+📊 Diagrama de Gantt (Resumen)
+Objetivo	Inicio	Fin	Responsable	Estado
+Servidor web	01/03/2025	10/03/2025	Maria / Enrique	⏳ Pendiente
+Front-page	11/03/2025	20/03/2025	Jan / Maria / Enrique	⏳ Pendiente
+Registro/Login	21/03/2025	25/03/2025	Enrique	⏳ Pendiente
