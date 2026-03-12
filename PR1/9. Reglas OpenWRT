@@ -1,0 +1,390 @@
+# Reglas de Firewall OpenWRT — Laboratorio SOC
+
+## Topología de Red
+
+| Interfaz | Bridge | Red | Rol |
+|----------|--------|-----|-----|
+| `eth0` | `vmbr0` | `192.168.109.0/24` | WAN (salida a Internet) |
+| `eth1` | `vmbr1` | `192.168.1.0/24` | LAN (red interna) |
+
+**OpenWRT gateway:** `192.168.1.2` (CT 100)
+
+---
+
+## Inventario de Nodos
+
+| CT/VM | Servicio | IP | Puertos relevantes |
+|-------|----------|----|--------------------|
+| CT 100 | OpenWRT (firewall/gateway) | `192.168.1.2` | — |
+| CT 101 | IDS (Suricata/Zeek) | `192.168.1.10` | — |
+| CT 102 | Grafana + Prometheus | `192.168.1.11` | `3000`, `9090` |
+| CT 103 | Playbooks + DNS | `192.168.1.12` | `53/UDP`, `53/TCP` |
+| CT 104 | SOAR Web | `192.168.1.13` | `80`, `443`, `3306` |
+| VM 200 | VM de trabajo/análisis | `192.168.1.14` | — |
+
+---
+
+## Zonas de Firewall
+
+La zona LAN cambia `forward` a **REJECT** para implementar política de salida restrictiva. Solo se permite salir mediante reglas explícitas por nodo.
+
+```
+config zone
+    option name    wan
+    option input   REJECT
+    option output  ACCEPT
+    option forward REJECT
+    option masq    1
+    option network wan
+
+config zone
+    option name    lan
+    option input   ACCEPT
+    option output  ACCEPT
+    option forward REJECT      # ← DEFAULT DENY OUTBOUND
+    option network lan
+```
+
+---
+
+## Reglas de Forwarding (Inter-zona)
+
+> ⚠️ **Se elimina el forwarding genérico LAN → WAN.** La salida a Internet se controla exclusivamente mediante las reglas por nodo definidas en la sección siguiente.
+
+```
+# WAN → LAN: denegado por defecto (REJECT en zona WAN)
+# LAN → WAN: denegado por defecto (REJECT en zona LAN forward)
+# Solo se permite salida mediante reglas explícitas por src_ip
+```
+
+---
+
+## Reglas de Entrada (Input) — Zona LAN
+
+### DNS — CT 103 (192.168.1.12)
+
+```
+config rule
+    option name    'Allow-DNS-UDP'
+    option src     lan
+    option dest_ip 192.168.1.12
+    option proto   udp
+    option dest_port 53
+    option target  ACCEPT
+
+config rule
+    option name    'Allow-DNS-TCP'
+    option src     lan
+    option dest_ip 192.168.1.12
+    option proto   tcp
+    option dest_port 53
+    option target  ACCEPT
+```
+
+### SOAR Web — CT 104 (192.168.1.13)
+
+```
+config rule
+    option name    'Allow-SOAR-HTTP'
+    option src     lan
+    option dest_ip 192.168.1.13
+    option proto   tcp
+    option dest_port 80
+    option target  ACCEPT
+
+config rule
+    option name    'Allow-SOAR-HTTPS'
+    option src     lan
+    option dest_ip 192.168.1.13
+    option proto   tcp
+    option dest_port 443
+    option target  ACCEPT
+
+config rule
+    option name    'Allow-SOAR-MySQL'
+    option src     lan
+    option dest_ip 192.168.1.13
+    option proto   tcp
+    option dest_port 3306
+    option target  ACCEPT
+```
+
+> ⚠️ **Recomendación:** limitar el acceso al puerto `3306` exclusivamente a los nodos que lo necesiten (por ejemplo, solo desde CT 103 si los playbooks consultan la BD):
+> ```
+>     option src_ip  192.168.1.12
+> ```
+
+### Grafana + Prometheus — CT 102 (192.168.1.11)
+
+```
+config rule
+    option name    'Allow-Grafana'
+    option src     lan
+    option dest_ip 192.168.1.11
+    option proto   tcp
+    option dest_port 3000
+    option target  ACCEPT
+
+config rule
+    option name    'Allow-Prometheus'
+    option src     lan
+    option dest_ip 192.168.1.11
+    option proto   tcp
+    option dest_port 9090
+    option target  ACCEPT
+```
+
+### IDS — CT 101 (192.168.1.10)
+
+```
+# El IDS opera en modo pasivo/mirror; no requiere reglas de entrada expuestas
+# Si expone API de gestión (e.g. 8080), restringir solo a hosts de administración:
+config rule
+    option name    'Allow-IDS-Mgmt'
+    option src     lan
+    option src_ip  192.168.1.12   # Solo desde el nodo de playbooks
+    option dest_ip 192.168.1.10
+    option proto   tcp
+    option dest_port 8080
+    option target  ACCEPT
+```
+
+---
+
+## Reglas de Salida (Outbound) — Default Deny por Nodo
+
+### CT 101 — IDS (192.168.1.10) — Sin salida a Internet
+
+```
+# El IDS opera en modo pasivo. No necesita salida exterior.
+# No se añade ninguna regla de forward para esta IP.
+# Si necesita actualizaciones de firmas, hacerlo manualmente o via proxy interno.
+```
+
+### CT 102 — Grafana + Prometheus (192.168.1.11) — Solo NTP
+
+```
+config rule
+    option name      'Out-Grafana-NTP'
+    option src       lan
+    option src_ip    192.168.1.11
+    option dest      wan
+    option proto     udp
+    option dest_port 123
+    option target    ACCEPT
+```
+
+### CT 103 — DNS + Playbooks (192.168.1.12) — DNS externo + HTTPS + NTP
+
+```
+# Resolución DNS hacia Internet (upstream resolver)
+config rule
+    option name      'Out-DNS-UDP'
+    option src       lan
+    option src_ip    192.168.1.12
+    option dest      wan
+    option proto     udp
+    option dest_port 53
+    option target    ACCEPT
+
+config rule
+    option name      'Out-DNS-TCP'
+    option src       lan
+    option src_ip    192.168.1.12
+    option dest      wan
+    option proto     tcp
+    option dest_port 53
+    option target    ACCEPT
+
+# HTTPS para playbooks, feeds de inteligencia, actualizaciones
+config rule
+    option name      'Out-DNS-HTTPS'
+    option src       lan
+    option src_ip    192.168.1.12
+    option dest      wan
+    option proto     tcp
+    option dest_port 443
+    option target    ACCEPT
+
+config rule
+    option name      'Out-DNS-NTP'
+    option src       lan
+    option src_ip    192.168.1.12
+    option dest      wan
+    option proto     udp
+    option dest_port 123
+    option target    ACCEPT
+```
+
+### CT 104 — SOAR Web (192.168.1.13) — Solo HTTPS + NTP
+
+```
+# HTTPS para integraciones con APIs externas (VirusTotal, MISP, etc.)
+config rule
+    option name      'Out-SOAR-HTTPS'
+    option src       lan
+    option src_ip    192.168.1.13
+    option dest      wan
+    option proto     tcp
+    option dest_port 443
+    option target    ACCEPT
+
+config rule
+    option name      'Out-SOAR-NTP'
+    option src       lan
+    option src_ip    192.168.1.13
+    option dest      wan
+    option proto     udp
+    option dest_port 123
+    option target    ACCEPT
+```
+
+> ⚠️ Si el SOAR solo se comunica con APIs concretas, añade `option dest_ip <IP_proveedor>` para restringir el destino.
+
+### VM 200 — VM de trabajo/análisis (192.168.1.14) — Controlada con LOG
+
+```
+# Nodo de mayor riesgo. Todo el tráfico saliente se registra antes de aceptar.
+config rule
+    option name      'Log-VM200-Out'
+    option src       lan
+    option src_ip    192.168.1.14
+    option dest      wan
+    option target    LOG
+    option log_prefix 'VM200-OUT: '
+
+config rule
+    option name      'Out-VM200-HTTPS'
+    option src       lan
+    option src_ip    192.168.1.14
+    option dest      wan
+    option proto     tcp
+    option dest_port 443
+    option target    ACCEPT
+
+# HTTP: valorar si es estrictamente necesario
+config rule
+    option name      'Out-VM200-HTTP'
+    option src       lan
+    option src_ip    192.168.1.14
+    option dest      wan
+    option proto     tcp
+    option dest_port 80
+    option target    ACCEPT
+
+config rule
+    option name      'Out-VM200-NTP'
+    option src       lan
+    option src_ip    192.168.1.14
+    option dest      wan
+    option proto     udp
+    option dest_port 123
+    option target    ACCEPT
+```
+
+> ⚠️ **Aislamiento de emergencia:** si la VM 200 se infecta, eliminar o comentar las reglas `Out-VM200-*` para cortarle el acceso exterior sin tocar el resto de la red.
+
+### Regla de cierre — Drop explícito LAN → WAN
+
+```
+# Registrar y descartar cualquier tráfico no permitido explícitamente
+config rule
+    option name      'Log-Drop-LAN-WAN'
+    option src       lan
+    option dest      wan
+    option target    LOG
+    option log_prefix 'DROPPED-OUT: '
+
+config rule
+    option name      'Drop-LAN-WAN'
+    option src       lan
+    option dest      wan
+    option target    DROP
+```
+
+---
+
+## NAT / Masquerade
+
+El masquerade está habilitado en la zona WAN para que todos los nodos LAN salgan con la IP de la interfaz `vmbr0`.
+
+```
+config zone
+    option name  wan
+    option masq  1
+```
+
+---
+
+## Reglas de Denegación Explícita (Hardening)
+
+```
+# Bloquear acceso externo a MySQL desde WAN
+config rule
+    option name    'Block-MySQL-WAN'
+    option src     wan
+    option dest_ip 192.168.1.13
+    option proto   tcp
+    option dest_port 3306
+    option target  REJECT
+
+# Bloquear acceso directo desde WAN a Prometheus
+config rule
+    option name    'Block-Prometheus-WAN'
+    option src     wan
+    option dest_ip 192.168.1.11
+    option proto   tcp
+    option dest_port 9090
+    option target  REJECT
+
+# Regla de denegación final (drop all WAN→LAN)
+config rule
+    option name    'Drop-WAN-to-LAN'
+    option src     wan
+    option dest    lan
+    option target  DROP
+```
+
+---
+
+## DNS como Gateway DNS de la LAN
+
+Configurar OpenWRT para redirigir todas las consultas DNS internas hacia CT 103:
+
+```
+# En /etc/config/dhcp (dnsmasq)
+config dnsmasq
+    option server    192.168.1.12   # Reenviar consultas al DNS interno
+    option localuse  0
+    option rebind_protection 0
+
+# O en /etc/resolv.conf del propio OpenWRT
+nameserver 192.168.1.12
+```
+
+---
+
+## Resumen de Política de Seguridad
+
+| Dirección | Política por defecto | Excepciones |
+|-----------|---------------------|-------------|
+| LAN → WAN | **DROP** (default deny) | Reglas explícitas por `src_ip` |
+| WAN → LAN | **REJECT** | Ninguna |
+| LAN → LAN | **ACCEPT** | — |
+| WAN → OpenWRT | **REJECT** | Gestión SSH si se necesita |
+
+### Matriz de salida a Internet por nodo
+
+| Nodo | IP | HTTPS (443) | DNS (53) | NTP (123) | HTTP (80) | Resto |
+|------|----|:-----------:|:--------:|:---------:|:---------:|-------|
+| CT 101 IDS | `192.168.1.10` | ✗ | ✗ | ✗ | ✗ | DROP |
+| CT 102 Grafana | `192.168.1.11` | ✗ | ✗ | ✓ | ✗ | DROP |
+| CT 103 DNS/PB | `192.168.1.12` | ✓ | ✓ | ✓ | ✗ | DROP |
+| CT 104 SOAR | `192.168.1.13` | ✓ | ✗ | ✓ | ✗ | DROP |
+| VM 200 | `192.168.1.14` | ✓ (LOG) | ✗* | ✓ | ✓ (revisar) | DROP |
+
+> \* La VM 200 resuelve DNS internamente contra CT 103 (192.168.1.12), no directamente a Internet.
+
+---
+
+*Generado para entorno Proxmox all-in-one con OpenWRT CT 100 como firewall/gateway perimetral.*
