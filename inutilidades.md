@@ -1,0 +1,41 @@
+```
+Internet (WAN)
+   ↓
+Proxmox Host (192.168.1.100)
+   ├── vmbr0 (Red Externa: 192.168.1.x)
+   └── vmbr1 (Red Interna: 10.10.10.x)
+          ↓
+       Firewall — OpenWRT (CT 100)
+          ├── eth0 → vmbr0 (192.168.1.101/24) — WAN
+          └── eth1 → vmbr1 (10.10.10.1/24)   — LAN Gateway
+                 ↓
+              Red Interna (10.10.10.x)
+                 │
+                 ├── IDS — Snort/Suricata (CT 101) → 10.10.10.10/24
+                 │      └── Monitoriza todo el tráfico interno
+                 │
+                 ├── Grafana (CT 102) → 10.10.10.20/24  :3000
+                 │      └── Dashboard de monitorización
+                 │
+                 ├── Prometheus (CT 103) → 10.10.10.21/24  :9090
+                 │      └── Recolección de métricas
+                 │             └── Fuente de datos → Grafana
+                 │
+                 ├── SOAR Web (CT 104) → 10.10.10.30/24  :80
+                 │      ├── Frontend: HTML + CSS + JavaScript
+                 │      ├── Backend:  PHP seguro
+                 │      └── Base de datos: MariaDB / MySQL
+                 │
+                 ├── Playbooks (CT 105) → 10.10.10.40/24
+                 │      ├── Scripts Bash de respuesta automática
+                 │      ├── Trigger: alertas del IDS
+                 │      └── Salida: correo via SMTP → admin@soc.local
+                 │
+                 ├── Windows AD (VM 200) → 10.10.10.100/24
+                 │      ├── Active Directory Domain Services
+                 │      └── Logs Syslog/WMI → Prometheus
+                 │
+                 └── Backup (VM 201) → 10.10.10.50/24
+                        ├── Proxmox Backup Server
+                        └── rsync de todas las CTs/VMs
+```
