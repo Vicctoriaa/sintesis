@@ -39,3 +39,22 @@ Proxmox Host (192.168.1.100)
                         ├── Proxmox Backup Server
                         └── rsync de todas las CTs/VMs
 ```
+
+
+## Flujos de tráfico principales
+
+```
+[Internet] ──WAN──→ [OpenWRT FW] ──LAN──→ [vSwitch vmbr1]
+                         │                       │
+                    filtra/NAT            distribuye a CTs
+                         │
+                        [IDS] ──alertas──→ [Playbooks] ──SMTP──→ 📧 Email admin
+                                                │
+                                                └──────────────→ [SOAR Web]
+
+[Windows AD] ──Syslog──→ [Prometheus] ──datos──→ [Grafana]
+
+[🎯 PCs Atacantes] ──pentest──→ [OpenWRT FW]  ← intrusión simulada (Fase 9)
+```
+
+---
