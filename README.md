@@ -95,3 +95,30 @@ Usaremos **Trello** para gestionar todas las tareas.
 - Establecer claves primarias y relaciones entre tablas  
 
 > Herramientas recomendadas: **draw.io**, **Lucidchart**, **Microsoft Visio**
+
+
+
+
+--- 
+
+Siguiendo la plantilla que tienes a continuación, completa la matriz de requisitos y funcionalidades asignando una prioridad a cada función y una fecha aproximada de
+entrega. Se todo lo concreto posible.
+ID Prioridad Objetivo Funcionalidad Disparador Fecha Entrega Estado
+ID0 Media Registrar usuarios en
+la página
+Deberá crearse un sistema de registro de usuarios y
+posterior login que guarde información individual del
+usuario
+Un botón en la esquina superior
+te llevará a la pantalla de
+registro/login
+20/02/2025 Pendiente
+3
+Donde:
+• ID: número asignado de tarea
+• Prioridad: Prioridad que se le da a la tarea, puede ser Baja, Media o Alta. Ver esquema de Gestión de Proyecto.
+• Requisito: Narrativa de cliente que describe en que consiste el requerimiento de proyecto.
+• Funcionalidad: La funcionalidad de la app que va a cumplir con el objetivo de requisito previamente descrito.
+• Disparador: evento u objeto (gráfico o no) que va a hacer que se realice la función descrita.
+• Fecha: aproximada de entrega
+• Estado: Activo, pendiente o cancelado
