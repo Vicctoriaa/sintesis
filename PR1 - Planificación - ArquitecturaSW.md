@@ -1,4 +1,4 @@
-# 1. Especificar objetivos y funcionalidades  
+## 1. Especificar objetivos y funcionalidades  
 # 2. Especificar listado de tareas  
 # 3. Asignar roles y responsabilidades del equipo  
 # 4. Diseñar el diagrama de la red  
