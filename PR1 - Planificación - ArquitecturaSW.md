@@ -1,3 +1,15 @@
+# 1. Especificar objetivos y funcionalidades  
+# 2. Especificar listado de tareas  
+# 3. Asignar roles y responsabilidades del equipo  
+# 4. Diseñar el diagrama de la red  
+# 5. Determinar las tecnologías a implementar  
+# 6. Definir el hardware a utilizar  
+# 7. Identificar los servicios a implementar  
+# 8. Establecer los sistemas operativos a utilizar  
+# 9. Crear un diagrama de Gantt con los objetivos y resultados  
+# 10. Documentar todo en GitHub
+
+    
 # 🔐 SOC — Esquema de Red Fase 1
 
 ```
