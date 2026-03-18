@@ -190,6 +190,92 @@ curl -s http://localhost:9090/api/v1/targets | grep health
 
 ---
 
+### Configuración final `/opt/prometheus/prometheus.yml`
+ 
+```yaml
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+ 
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+ 
+rule_files:
+ 
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+ 
+  - job_name: "node_exporter"
+    static_configs:
+      - targets:
+        - "10.1.1.66:9100"    # CT101 Grafana-Prometheus
+        - "10.1.1.34:9100"    # CT103 DNS
+ 
+  - job_name: "bind_exporter"
+    static_configs:
+      - targets:
+        - "10.1.1.34:9119"    # CT103 Bind9
+```
+ 
+Reiniciar Prometheus tras cualquier cambio:
+ 
+```bash
+systemctl restart prometheus
+```
+ 
+---
+ 
+## Estado final de targets Prometheus
+ 
+| Job | Target | Estado |
+|-----|--------|--------|
+| prometheus | localhost:9090 | up ✅ |
+| node_exporter | 10.1.1.66:9100 | up ✅ |
+| node_exporter | 10.1.1.34:9100 | up ✅ |
+| bind_exporter | 10.1.1.34:9119 | up ✅ |
+ 
+---
+ 
+## Grafana — Configuración datasource y dashboards
+ 
+### Añadir Prometheus como datasource
+ 
+```
+Home → Connections → Data sources → Add new data source
+→ Seleccionar: Prometheus
+→ URL: http://10.1.1.66:9090
+→ Save & Test
+```
+ 
+### Importar dashboards
+ 
+| Dashboard | ID | Descripción |
+|-----------|-----|-------------|
+| Node Exporter Full | 1860 | CPU, RAM, disco, red por host |
+| Bind9 | 11225 | Queries DNS, NXDOMAIN, latencia |
+ 
+Pasos para importar:
+ 
+```
+Home → Dashboards → New → Import
+→ Introducir ID del dashboard
+→ Seleccionar datasource Prometheus
+→ Import
+```
+ 
+---
+ 
+## Exporters por contenedor
+ 
+| CT | Servicio | Node Exporter | Bind Exporter |
+|----|----------|---------------|---------------|
+| CT 101 | Grafana-Prometheus | ✅ :9100 | — |
+| CT 103 | DNS Bind9 | ✅ :9100 | ✅ :9119 |
+
 ## Resumen
 
 ```
