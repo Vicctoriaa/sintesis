@@ -96,7 +96,7 @@ CREATE TABLE contactos (
 
 ```sql
 -- Crear usuario para la aplicación web
-CREATE USER 'webuser'@'localhost' IDENTIFIED BY 'StrongPass123!';
+CREATE USER 'webuser'@'localhost' IDENTIFIED BY 'xxxx!';
 
 -- Conceder permisos sobre la base de datos
 GRANT ALL PRIVILEGES ON honeycos_db.* TO 'webuser'@'localhost';
@@ -105,7 +105,7 @@ GRANT ALL PRIVILEGES ON honeycos_db.* TO 'webuser'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
-> **⚠️ Seguridad:** Cambia `StrongPass123!` por una contraseña robusta y única en producción.
+> **⚠️ Seguridad:** Cambia `xxxx!` por una contraseña robusta y única en producción.
 
 ---
 
