@@ -67,7 +67,37 @@ sudo ldapadd -x -D "cn=admin,dc=soc,dc=local" -W -f estructura.ldif
 ```bash
 slappasswd -s mi_contraseña_secreta
 ```
+#!/bin/bash
 
+# ─────────────────────────────────────────
+# genera_hashes_admin.sh
+# ─────────────────────────────────────────
+
+echo "=== Generando hashes para grupo ADMIN ==="
+
+echo ""
+echo "👤 Juan Gonzalez (jgonzalez)"
+read -s -p "   Contraseña: " pass
+echo ""
+hash=$(slappasswd -s "$pass")
+echo "   Hash: $hash"
+
+echo ""
+echo "👤 Victoria Conde (vconde)"
+read -s -p "   Contraseña: " pass
+echo ""
+hash=$(slappasswd -s "$pass")
+echo "   Hash: $hash"
+
+echo ""
+echo "👤 Victor Martinez (vmartinez)"
+read -s -p "   Contraseña: " pass
+echo ""
+hash=$(slappasswd -s "$pass")
+echo "   Hash: $hash"
+
+echo ""
+echo "✅ Copia cada hash en su userPassword dentro de usuarios_admin.ldif"
 ---
 
 ## 👤 6. Crear un usuario
