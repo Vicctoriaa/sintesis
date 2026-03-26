@@ -1,56 +1,80 @@
-🧠 1. Instalar LDAP
+# 🗂️ Configuración de LDAP en contenedor
+
+---
+
+## 🧠 1. Instalar LDAP
 
 Dentro del contenedor:
+```bash
 apt update
 apt install slapd ldap-utils -y
+```
 
+---
 
-⚙️ 2. Configuración inicial (IMPORTANTE)
+## ⚙️ 2. Configuración inicial (IMPORTANTE)
 
 Reconfigura para hacerlo bien:
+```bash
 dpkg-reconfigure slapd
+```
 
-Respuestas
-Omit OpenLDAP server configuration? → ❌ NO
-DNS domain name:
-👉 midominio.local
-Organization name:
-👉 lo que quieras (ej: MiEmpresa)
-Administrator password:
-👉 pon una (apúntala)
-Database backend:
-👉 MDB
-Remove database when slapd is purged? → NO
-Move old database? → YES
-Allow LDAPv2? → NO
+**Respuestas:**
 
+| Pregunta | Respuesta |
+|---|---|
+| Omit OpenLDAP server configuration? | ❌ NO |
+| DNS domain name | `midominio.local` |
+| Organization name | Lo que quieras (ej: `MiEmpresa`) |
+| Administrator password | Pon una y apúntala |
+| Database backend | `MDB` |
+| Remove database when slapd is purged? | NO |
+| Move old database? | YES |
+| Allow LDAPv2? | NO |
 
-3. Verificar que funciona
-bashsudo slapcat
-Deberías ver tu base DN: dc=soc,dc=local
+---
 
+## ✅ 3. Verificar que funciona
+```bash
+sudo slapcat
+```
 
-4. Crear la estructura base (OUs)
-Crea un fichero estructura.ldif:
-ldifdn: ou=usuarios,dc=soc,dc=local
+> Deberías ver tu base DN: `dc=soc,dc=local`
+
+---
+
+## 🏗️ 4. Crear la estructura base (OUs)
+
+Crea un fichero `estructura.ldif`:
+```ldif
+dn: ou=usuarios,dc=soc,dc=local
 objectClass: organizationalUnit
 ou: usuarios
+
 dn: ou=grupos,dc=soc,dc=local
 objectClass: organizationalUnit
 ou: grupos
+```
 
+Aplícalo:
+```bash
+sudo ldapadd -x -D "cn=admin,dc=soc,dc=local" -W -f estructura.ldif
+```
 
-5. Aplícalo:
-bashsudo ldapadd -x -D "cn=admin,dc=soc,dc=local" -W -f estructura.ldif
+---
 
+## 🔐 5. Generar hash de contraseña
+```bash
+slappasswd -s mi_contraseña_secreta
+```
 
-6. Para generar el hash de la contraseña:
-bashslappasswd -s mi_contraseña_secreta
+---
 
+## 👤 6. Crear un usuario
 
-7. Crear un usuario
-Crea usuario.ldif:
-ldifdn: uid=jperez,ou=usuarios,dc=soc,dc=local
+Crea `usuario.ldif`:
+```ldif
+dn: uid=jperez,ou=usuarios,dc=soc,dc=local
 objectClass: inetOrgPerson
 objectClass: posixAccount
 objectClass: shadowAccount
@@ -62,21 +86,32 @@ gidNumber: 10001
 homeDirectory: /home/{Nombre-usuario}
 loginShell: /bin/bash
 userPassword: {SSHA}HASH_AQUI
+```
 
+Copia el hash resultante en `userPassword` y aplica:
+```bash
+sudo ldapadd -x -D "cn=admin,dc=soc,dc=local" -W -f usuario.ldif
+```
 
-8. Copia el hash resultante en userPassword y aplica:
-bashsudo ldapadd -x -D "cn=admin,dc=soc,dc=local" -W -f usuario.ldif
+---
 
+## 🔍 7. Consultar el directorio
 
-9. Consultar el directorio
-bash# Ver todo el árbol
+**Ver todo el árbol:**
+```bash
 ldapsearch -x -b "dc=soc,dc=local" -D "cn=admin,dc=soc,dc=local" -W
+```
 
-# Buscar un usuario concreto
+**Buscar un usuario concreto:**
+```bash
 ldapsearch -x -b "ou=usuarios,dc=soc,dc=local" "(uid=jperez)" -D "cn=admin,dc=soc,dc=local" -W
+```
 
+---
 
-10. Habilitar LDAPS (TLS) — recomendado
-bashsudo apt install ssl-cert
+## 🔒 8. Habilitar LDAPS (TLS) — recomendado
+```bash
+sudo apt install ssl-cert
 sudo adduser openldap ssl-cert
 sudo systemctl restart slapd
+```
