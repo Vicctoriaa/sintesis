@@ -152,4 +152,4 @@ Abre el siguiente puerto hacia la IP del contenedor Nginx:
 
 | Puerto externo | Destino |
 |----------------|---------|
-| `8443` | IP del contenedor Nginx |
+| `8443` | https://192.168.3.200 |
