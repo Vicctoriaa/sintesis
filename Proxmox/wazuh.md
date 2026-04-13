@@ -16,7 +16,8 @@ Agentes conectados:
 ├── CT103 — DNS           (10.1.1.34  / VLAN20)
 ├── CT104 — SOAR          (10.1.1.37  / VLAN20)
 ├── CT105 — Nginx         (10.1.1.35  / VLAN20)
-└── CT106 — Suricata      (10.1.1.36  / VLAN20)
+├── CT106 — Suricata      (10.1.1.36  / VLAN20)
+└── VM203 — Honeypot      (10.1.1.130 / VLAN50)
 ```
 
 **Acceso al dashboard:** `https://192.168.3.200` (via PREROUTING → 10.1.1.67:443)
@@ -77,11 +78,7 @@ nodes:
 bash wazuh-install.sh -a 2>&1 | tee /root/wazuh-install.log
 ```
 
-El instalador instala y configura automáticamente todos los componentes: wazuh-indexer, wazuh-manager, wazuh-dashboard y filebeat. Al finalizar muestra las credenciales de acceso — guardarlas en lugar seguro.
-
 ### Actualización a 4.14.4
-
-Tras la instalación inicial en 4.11.2 fue necesario actualizar a 4.14.4 para compatibilidad con los agentes:
 
 ```bash
 apt update
@@ -101,16 +98,8 @@ apt install -y wazuh-manager wazuh-indexer wazuh-dashboard
 | wazuh-dashboard | 443 | Interfaz web |
 | filebeat | — | Envío de logs al indexer |
 
-### Verificar estado de servicios
-
 ```bash
 systemctl status wazuh-manager wazuh-indexer wazuh-dashboard filebeat --no-pager
-```
-
-### Verificar salud del indexer
-
-```bash
-curl -sk -u admin:PASSWORD https://localhost:9200/_cluster/health | python3 -m json.tool
 ```
 
 ---
@@ -136,37 +125,9 @@ uiSettings.overrides.defaultRoute: /app/wz-home
 opensearch_security.cookie.secure: true
 ```
 
-### Credenciales del indexer (keystore)
-
-Las credenciales de `kibanaserver` se almacenan en el keystore del dashboard:
-
-```bash
-# Ver entradas del keystore
-/usr/share/wazuh-dashboard/bin/opensearch-dashboards-keystore list --allow-root
-
-# Actualizar contraseña si es necesario
-echo "nueva_password" | /usr/share/wazuh-dashboard/bin/opensearch-dashboards-keystore add opensearch.password --allow-root --stdin
-```
-
-### Configuración de la API (wazuh.yml)
-
-`/usr/share/wazuh-dashboard/data/wazuh/config/wazuh.yml`
-
-```yaml
-hosts:
-  - default:
-      url: https://127.0.0.1
-      port: 55000
-      username: wazuh-wui
-      password: "PASSWORD_WAZUH_WUI"
-      run_as: false
-```
-
 ---
 
 ## Gestión de contraseñas
-
-Para cambiar contraseñas de usuarios del indexer usar el script oficial:
 
 ```bash
 # Cambiar contraseña de un usuario específico
@@ -177,43 +138,20 @@ bash /usr/share/wazuh-indexer/plugins/opensearch-security/tools/wazuh-passwords-
 bash /usr/share/wazuh-indexer/plugins/opensearch-security/tools/wazuh-passwords-tool.sh -a
 ```
 
-Requisitos de contraseña: entre 8 y 64 caracteres, con mayúsculas, minúsculas, números y al menos un símbolo de `.*+?-`.
-
 ---
 
 ## Exposición del dashboard al exterior
 
-### Reglas iptables en el host Proxmox
-
 ```bash
-# PREROUTING — tráfico externo al dashboard
 iptables -t nat -A PREROUTING -i vmbr0 -p tcp --dport 443 -j DNAT --to-destination 10.1.1.67:443
-
-# OUTPUT — tráfico desde el propio host
 iptables -t nat -A OUTPUT -p tcp -d 192.168.3.200 --dport 443 -j DNAT --to-destination 10.1.1.67:443
-
-# MASQUERADE — retorno correcto del tráfico
 iptables -t nat -A POSTROUTING -d 10.1.1.67 -p tcp --dport 443 -j MASQUERADE
-
-# Persistir
 netfilter-persistent save
 ```
-
-### Regla de firewall OpenWRT
-
-La regla `Allow-Proxmox-Monitoring` (rule[9]) incluye los puertos necesarios:
-
-```
-22 53 80 443 1514 1515 3000 8080 9090 9100 9917 9119
-```
-
-Además se añadió forwarding `vlan40 → vlan30` para que CT100 (LDAP en VLAN40) pueda conectar con el manager en VLAN30.
 
 ---
 
 ## Instalación de agentes
-
-### Comando de instalación (para CTs Debian/Ubuntu)
 
 ```bash
 # Añadir repositorio
@@ -234,13 +172,6 @@ systemctl enable wazuh-agent
 systemctl start wazuh-agent
 ```
 
-### Cambiar IP del manager en agentes existentes
-
-```bash
-sed -i 's/<address>.*<\/address>/<address>10.1.1.67<\/address>/' /var/ossec/etc/ossec.conf
-systemctl restart wazuh-agent
-```
-
 ---
 
 ## Agentes desplegados
@@ -253,12 +184,125 @@ systemctl restart wazuh-agent
 | 004 | grafana-prometheus | 10.1.1.66 | 30 | Debian 11 | active |
 | 005 | playbooks-dns | 10.1.1.34 | 20 | Debian 11 | active |
 | 006 | ldap | 10.1.1.98 | 40 | Ubuntu 22.04 | active |
+| 007 | honeypot | 10.1.1.130 | 50 | Debian 12 | active ✅ |
+
+---
+
+## Reglas personalizadas
+
+### Honeypot (100500-100508)
+
+**Fichero:** `/var/ossec/etc/rules/honeypot_rules.xml`
+
+```xml
+<group name="honeypot,">
+
+  <rule id="100500" level="3">
+    <decoded_as>json</decoded_as>
+    <match>"hostname": "honeypot"</match>
+    <description>Honeypot: evento detectado</description>
+    <group>honeypot,</group>
+  </rule>
+
+  <rule id="100501" level="5">
+    <if_sid>100500</if_sid>
+    <match>"action": "connection"</match>
+    <description>Honeypot: conexion detectada</description>
+    <group>honeypot,connection,</group>
+  </rule>
+
+  <rule id="100502" level="8">
+    <if_sid>100500</if_sid>
+    <match>"action": "login_attempt"</match>
+    <description>Honeypot: intento de login</description>
+    <group>honeypot,authentication_failed,</group>
+  </rule>
+
+  <rule id="100503" level="10">
+    <if_sid>100500</if_sid>
+    <match>"action": "command"</match>
+    <description>Honeypot: comando ejecutado SSH</description>
+    <group>honeypot,ssh,command,</group>
+  </rule>
+
+  <rule id="100504" level="5">
+    <if_sid>100500</if_sid>
+    <match>"action": "request"</match>
+    <description>Honeypot: request HTTP/HTTPS</description>
+    <group>honeypot,http,</group>
+  </rule>
+
+  <rule id="100505" level="10">
+    <if_sid>100504</if_sid>
+    <match>"path": "/.env"</match>
+    <description>Honeypot: acceso a ruta sensible</description>
+    <group>honeypot,http,suspicious,</group>
+  </rule>
+
+  <rule id="100506" level="8">
+    <if_sid>100500</if_sid>
+    <match>"action": "file_access"</match>
+    <description>Honeypot: acceso a fichero</description>
+    <group>honeypot,file_access,</group>
+  </rule>
+
+  <rule id="100507" level="14">
+    <if_sid>100500</if_sid>
+    <match>"action": "brute_force"</match>
+    <description>Honeypot: BRUTE FORCE detectado</description>
+    <group>honeypot,brute_force,authentication_failures,</group>
+  </rule>
+
+  <rule id="100508" level="12">
+    <if_sid>100500</if_sid>
+    <match>"level": "ERROR"</match>
+    <description>Honeypot: evento critico</description>
+    <group>honeypot,high_severity,</group>
+  </rule>
+
+</group>
+```
+
+| ID | Nivel | Descripcion | Mail |
+|----|-------|-------------|------|
+| 100500 | 3 | Evento generico | No |
+| 100501 | 5 | Conexion detectada | No |
+| 100502 | 8 | Intento de login | No |
+| 100503 | 10 | Comando SSH ejecutado | No |
+| 100504 | 5 | Request HTTP/HTTPS | No |
+| 100505 | 10 | Acceso a ruta sensible | No |
+| 100506 | 8 | Acceso a fichero | No |
+| 100507 | 14 | Brute force detectado | **Si** |
+| 100508 | 12 | Evento critico (ERROR) | No |
+
+---
+
+## Listas CDB
+
+Directorio: `/var/ossec/etc/lists/malicious-ioc/`
+
+| Fichero | Descripcion |
+|---------|-------------|
+| malware-hashes | Hashes de malware conocido |
+| malicious-ip | IPs maliciosas conocidas |
+| malicious-domains | Dominios maliciosos conocidos |
+
+> Listas creadas el 2026-04-13. Actualmente contienen entrada placeholder. Pendiente poblar con IOCs reales.
+
+---
+
+## Configuración email (ossec.conf)
+
+| Parámetro | Valor |
+|-----------|-------|
+| email_notification | yes |
+| smtp_server | 10.1.1.53 (CT108 Postfix) |
+| email_from | alertas-wazuh@soc.local |
+| email_to | telenecos9@gmail.com |
 
 ---
 
 ## Registro DNS
-
-Registro añadido en CT103 (Bind9):
 
 ```
 wazuh    IN  A   10.1.1.67
@@ -271,18 +315,25 @@ Acceso interno: `https://wazuh.soc.local`
 ## Comandos útiles
 
 ```bash
-# Ver agentes conectados desde el manager
+# Ver agentes conectados
 /var/ossec/bin/agent_control -l
+
+# Testear reglas y decoders
+/var/ossec/bin/wazuh-logtest
 
 # Ver logs del manager
 tail -f /var/ossec/logs/ossec.log
 
-# Ver logs de un agente
-tail -f /var/ossec/logs/ossec.log  # dentro del CT
-
 # Reiniciar todos los servicios
 systemctl restart wazuh-indexer wazuh-manager wazuh-dashboard filebeat
 
-# Ver estado del cluster
+# Verificar salud del indexer
 curl -sk -u admin:PASSWORD https://localhost:9200/_cluster/health | python3 -m json.tool
+
+# Verificar sintaxis de reglas
+/var/ossec/bin/wazuh-analysisd -t 2>&1 | tail -20
 ```
+
+---
+
+*Wazuh actualizado 2026-04-13*
