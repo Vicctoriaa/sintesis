@@ -1,3 +1,9 @@
+# ☁️ Cloudflare Tunnel con `cloudflared`
+
+> 🔐 Conecta tu servidor local (LXC / VPS / Debian / Ubuntu) a Internet de forma segura sin abrir puertos, usando Cloudflare Tunnel.
+
+---
+
 ## 📌 Índice
 
 - [1. Instalación de Cloudflared](#1--instalación-de-cloudflared)
@@ -83,29 +89,3 @@ systemctl restart cloudflared
 
 # Logs
 journalctl -u cloudflared -f
-🚀 Resultado final
-
-✔ Servidor local expuesto de forma segura
-✔ Sin abrir puertos
-✔ Protección de Cloudflare (DDoS + proxy)
-✔ Dominio conectado al túnel
-
-🧠 Nota técnica
-
-Este método es ideal para:
-
-🖥️ Servidores caseros (home lab)
-🧪 Entornos de desarrollo
-🌐 VPS sin IP pública fija
-🔐 Exposición segura de servicios internos
-
----
-
-Si quieres puedo llevarlo aún más lejos con:
-
-- 🔥 portada tipo “GitHub repo profesional” con banner
-- 🧭 diagrama visual del flujo Cloudflare → Tunnel → Nginx
-- 🧩 versión en inglés tipo portfolio técnico
-- 📦 badge de estado + versión + licencia estilo open source
-
-Solo dime.
