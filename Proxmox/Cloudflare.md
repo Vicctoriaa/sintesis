@@ -1,41 +1,40 @@
+☁️ Cloudflare Tunnel con cloudflared (Guía completa)
+
+Guía paso a paso para instalar y configurar un túnel de Cloudflare en un LXC con Debian/Ubuntu.
+
 ☁️ 1. Instalar Cloudflared en el LXC
-En Debian/Ubuntu:
+🔧 En Debian/Ubuntu:
 sudo apt update
 sudo apt install -y curl gnupg lsb-release
-Añadir repo de Cloudflare:
+📦 Añadir repositorio de Cloudflare:
 curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloudflare-main.gpg
+
 echo "deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/cloudflared.list
-Instalar:
+⚙️ Instalar paquete:
 sudo apt update
 sudo apt install cloudflared
-
 🔐 2. Login en Cloudflare
 
 Ejecuta:
 
 cloudflared tunnel login
-Te dará una URL
+Pasos:
+Se generará una URL
 Ábrela en tu navegador
+Inicia sesión
 Selecciona tu dominio
-
 🚇 3. Crear el túnel
 cloudflared tunnel create mi-tunel
 
-Esto genera:
+Esto generará:
 
-Un Tunnel ID
-
-Un archivo credencial en:
-
+🆔 Un Tunnel ID
+📁 Un archivo de credenciales en:
 /etc/cloudflared/<TUNNEL-ID>.json
 ⚙️ 4. Configurar el túnel
-
-Crea el archivo:
-
+📄 Crear archivo de configuración:
 sudo nano /etc/cloudflared/config.yml
-
-Ejemplo:
-
+🧩 Ejemplo de configuración:
 tunnel: mi-tunel
 credentials-file: /etc/cloudflared/TUNNEL_ID.json
 
@@ -48,18 +47,16 @@ ingress:
 
   - service: http_status:404
 
-👉 Aquí es donde conectas con Nginx, que normalmente escucha en localhost:80.
+👉 Este túnel redirige el tráfico hacia Nginx en localhost:80.
 
-🌐 5. Crear DNS en Cloudflare automáticamente
+🌐 5. Crear DNS en Cloudflare
 cloudflared tunnel route dns mi-tunel tu-dominio.com
 cloudflared tunnel route dns mi-tunel www.tu-dominio.com
-
 🚀 6. Ejecutar el túnel
-Prueba manual:
-
+🧪 Prueba manual:
 cloudflared tunnel run mi-tunel
 
-Si todo funciona, tu web ya debería salir por Cloudflare.
+Si todo está correcto, tu web ya estará accesible vía Cloudflare.
 
 🔄 7. Ejecutarlo como servicio (IMPORTANTE)
 sudo cloudflared service install
