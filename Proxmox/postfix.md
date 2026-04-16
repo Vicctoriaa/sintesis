@@ -15,6 +15,151 @@ El CT108 actúa como servidor de correo relay centralizado. Todos los nodos del 
 
 ## 2. CT108 — Servidor relay (Postfix)
 
+# Guía completa: Postfix como Relay SMTP con Gmail (con comandos explicados)
+
+## Objetivo
+
+Configurar Postfix para enviar correos usando Gmail como relay SMTP, incluyendo todos los comandos necesarios y su explicación. El envío se realiza mediante `sendmail` (backend de Postfix).
+
+---
+
+# 1. Instalación de paquetes
+
+```bash
+apt update
+
+Actualiza la lista de paquetes del sistema.
+
+apt install postfix mailutils libsasl2-modules ca-certificates -y
+
+Instala:
+
+postfix: servidor de correo
+mailutils: utilidades de correo (opcional, no imprescindible si usas sendmail)
+libsasl2-modules: autenticación SMTP (necesario para Gmail)
+ca-certificates: certificados TLS
+
+Durante la instalación:
+
+Tipo: Internet Site
+Nombre: wazuh-relay.local (puede ser cualquiera)
+2. Configuración de Postfix
+nano /etc/postfix/main.cf
+
+Edita el archivo principal de configuración.
+
+Contenido:
+
+myhostname = wazuh-relay.local
+myorigin = /etc/mailname
+mydestination = localhost, localhost.localdomain, localhost
+
+relayhost = [smtp.gmail.com]:587
+
+smtp_sasl_auth_enable = yes
+smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd
+smtp_sasl_security_options = noanonymous
+
+smtp_use_tls = yes
+smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt
+smtp_tls_security_level = encrypt
+smtp_sasl_tls_security_options = noanonymous
+
+mynetworks = 127.0.0.0/8, 10.1.1.0/27
+
+inet_interfaces = all
+inet_protocols = ipv4
+
+Explicación:
+
+relayhost: servidor SMTP de Gmail
+smtp_sasl_auth_enable: activa autenticación
+smtp_use_tls: usa cifrado TLS
+mynetworks: redes que pueden usar el servidor
+3. Crear contraseña de aplicación en Gmail
+
+Para usar Gmail necesitas una contraseña especial.
+
+Pasos:
+
+Ir a:
+https://myaccount.google.com/security
+Activar:
+Verificación en dos pasos (2FA)
+Entrar en:
+Contraseñas de aplicaciones
+Crear nueva:
+App: Correo
+Dispositivo: Postfix
+Obtendrás algo como:
+abcd efgh ijkl mnop
+
+Usar sin espacios:
+
+abcdefghijklmnop
+4. Configurar credenciales en Postfix
+nano /etc/postfix/sasl_passwd
+
+Contenido:
+
+[smtp.gmail.com]:587 TUEMAIL@gmail.com:abcdefghijklmnop
+5. Aplicar configuración
+postmap /etc/postfix/sasl_passwd
+
+Convierte el archivo en formato que Postfix puede usar (.db).
+
+chmod 600 /etc/postfix/sasl_passwd /etc/postfix/sasl_passwd.db
+
+Protege las credenciales (solo root puede leerlas).
+
+6. Reiniciar Postfix
+systemctl restart postfix
+
+Aplica todos los cambios.
+
+7. Envío de correo (sendmail)
+echo "Test correo" | sendmail -v tuemail@gmail.com
+
+Explicación:
+
+sendmail: interfaz estándar que usa Postfix para enviar correo
+-v: modo verbose (muestra el proceso de envío)
+8. Ver logs
+journalctl -u postfix -f
+
+Muestra lo que hace Postfix en tiempo real.
+
+9. Comandos de diagnóstico
+postqueue -p
+
+Muestra correos en cola.
+
+postconf
+
+Muestra toda la configuración activa.
+
+systemctl status postfix
+
+Verifica el estado del servicio.
+
+Seguridad básica
+No usar contraseña normal de Gmail
+Usar contraseña de aplicación
+No exponer el puerto SMTP a internet
+Limitar mynetworks
+Resultado esperado
+Correos enviados sin errores
+Logs muestran status=sent
+Emails recibidos correctamente
+Resumen
+
+Con estos pasos:
+
+Postfix queda instalado
+Se conecta a Gmail
+sendmail utiliza Postfix como backend
+El sistema puede enviar correos desde scripts y servicios
+
 ### Datos del contenedor
 
 | Campo | Valor |
