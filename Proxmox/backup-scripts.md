@@ -1,7 +1,5 @@
 # Scripts de Backup — SOC honeycos
-**Abril 2026**
 
----
 
 ## 1. Visión general
 
