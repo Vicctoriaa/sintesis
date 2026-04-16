@@ -66,10 +66,10 @@ cloudflared tunnel login
 cloudflared tunnel create mi-tunel
 ```
 
-### 📌 Resultado
+### Resultado
 
-- 🆔 Se genera un **Tunnel ID**
-- 📁 Archivo de credenciales en: `/etc/cloudflared/<TUNNEL-ID>.json`
+- Se genera un **Tunnel ID**
+- Archivo de credenciales en: `/etc/cloudflared/<TUNNEL-ID>.json`
 
 ---
 
