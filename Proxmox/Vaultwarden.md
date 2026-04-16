@@ -1,20 +1,20 @@
 # Vaultwarden en LXC Proxmox con Nginx
 
-## 🚀 1. Crear el contenedor LXC en Proxmox
+## 1. Crear el contenedor LXC en Proxmox
 
 **Config recomendada:**
 
 | Parámetro | Valor |
 |-----------|-------|
 | Template | Debian 12 (recomendado) |
-| Privileged | ✅ IMPORTANTE |
+| Privileged | IMPORTANTE |
 | RAM | 512MB mínimo (mejor 1GB) |
 | CPU | 1 core suficiente |
 | Disco | 5–10GB |
 
 ---
 
-## ⚙️ 2. Activar nesting (CLAVE)
+## 2. Activar nesting (CLAVE)
 
 En el host Proxmox:
 
@@ -33,7 +33,7 @@ features: nesting=1
 
 ---
 
-## 🐳 3. Instalar Docker dentro del LXC
+## 3. Instalar Docker dentro del LXC
 
 Entra al contenedor:
 
@@ -57,7 +57,7 @@ systemctl start docker
 
 ---
 
-## 📦 4. Crear Vaultwarden con docker-compose
+## 4. Crear Vaultwarden con docker-compose
 
 Crea carpeta:
 
@@ -84,11 +84,11 @@ services:
       - "8090:80"
 ```
 
-> ⚠️ **Nota:** Cambia `ADMIN_TOKEN` por un token seguro generado por ti antes de desplegar en producción.
+> **Nota:** Cambia `ADMIN_TOKEN` por un token seguro generado por ti antes de desplegar en producción.
 
 ---
 
-## 🌐 5. Configuración Nginx (proxy inverso)
+## 5. Configuración Nginx (proxy inverso)
 
 ### HTTP (puerto 8091)
 
@@ -146,7 +146,7 @@ systemctl reload nginx
 
 ---
 
-## 7. 🌍 Router
+## 7. Router
 
 Abre el siguiente puerto hacia la IP del contenedor Nginx:
 
