@@ -1,10 +1,10 @@
-# ☁️ Cloudflare Tunnel con `cloudflared`
+# Cloudflare Tunnel con `cloudflared`
 
-> 🔐 Conecta tu servidor local (LXC / VPS / Debian / Ubuntu) a Internet de forma segura sin abrir puertos, usando Cloudflare Tunnel.
+> Conecta tu servidor local (LXC / VPS / Debian / Ubuntu) a Internet de forma segura sin abrir puertos, usando Cloudflare Tunnel.
 
 ---
 
-## 📌 Índice
+## Índice
 
 1. [Instalación de Cloudflared](#1️⃣-instalación-de-cloudflared)
 2. [Login en Cloudflare](#2️⃣-login-en-cloudflare)
@@ -16,16 +16,16 @@
 
 ---
 
-## 1️⃣ Instalación de Cloudflared
+## 1️. Instalación de Cloudflared
 
-### 🧱 Requisitos previos
+### Requisitos previos
 
 ```bash
 sudo apt update
 sudo apt install -y curl gnupg lsb-release
 ```
 
-### 📦 Añadir repositorio oficial de Cloudflare
+### Añadir repositorio oficial de Cloudflare
 
 ```bash
 curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloudflare-main.gpg
@@ -34,7 +34,7 @@ echo "deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudf
 | sudo tee /etc/apt/sources.list.d/cloudflared.list
 ```
 
-### ⚙️ Instalar cloudflared
+### Instalar cloudflared
 
 ```bash
 sudo apt update
@@ -43,13 +43,13 @@ sudo apt install -y cloudflared
 
 ---
 
-## 2️⃣ Login en Cloudflare
+## 2️. Login en Cloudflare
 
 ```bash
 cloudflared tunnel login
 ```
 
-### 🌐 Proceso
+### Proceso
 
 | Paso | Descripción |
 |------|-------------|
@@ -60,7 +60,7 @@ cloudflared tunnel login
 
 ---
 
-## 3️⃣ Creación del túnel
+## 3️. Creación del túnel
 
 ```bash
 cloudflared tunnel create mi-tunel
@@ -73,15 +73,15 @@ cloudflared tunnel create mi-tunel
 
 ---
 
-## 4️⃣ Configuración del túnel
+## 4️. Configuración del túnel
 
-### 📄 Crear archivo de configuración
+### Crear archivo de configuración
 
 ```bash
 sudo nano /etc/cloudflared/config.yml
 ```
 
-### ⚙️ Ejemplo de configuración
+### Ejemplo de configuración
 
 ```yaml
 tunnel: mi-tunel
@@ -97,7 +97,7 @@ ingress:
   - service: http_status:404
 ```
 
-### 🔁 Flujo
+### Flujo
 
 ```
 🌍 Cloudflare → ☁️ Tunnel → 🖥️ Nginx (localhost:80)
@@ -105,7 +105,7 @@ ingress:
 
 ---
 
-## 5️⃣ Configuración DNS en Cloudflare
+## 5️. Configuración DNS en Cloudflare
 
 ```bash
 cloudflared tunnel route dns mi-tunel tu-dominio.com
@@ -114,15 +114,15 @@ cloudflared tunnel route dns mi-tunel www.tu-dominio.com
 
 ---
 
-## 6️⃣ Ejecución del túnel
+## 6️. Ejecución del túnel
 
-### 🧪 Modo prueba
+### Modo prueba
 
 ```bash
 cloudflared tunnel run mi-tunel
 ```
 
-### ✅ Resultado esperado
+### Resultado esperado
 
 - Tu web queda accesible desde Internet
 - Sin abrir puertos en el router
@@ -130,7 +130,7 @@ cloudflared tunnel run mi-tunel
 
 ---
 
-## 7️⃣ Ejecutarlo como servicio (RECOMENDADO)
+## 7️. Ejecutarlo como servicio (RECOMENDADO)
 
 ```bash
 sudo cloudflared service install
@@ -138,7 +138,7 @@ sudo systemctl enable cloudflared
 sudo systemctl start cloudflared
 ```
 
-### 🔄 Gestión del servicio
+### Gestión del servicio
 
 ```bash
 # Estado
@@ -153,4 +153,4 @@ journalctl -u cloudflared -f
 
 ---
 
-> 💡 **Tip:** Puedes usar `cloudflared tunnel list` para ver todos tus túneles activos y `cloudflared tunnel delete mi-tunel` para eliminar uno.
+> **Tip:** Puedes usar `cloudflared tunnel list` para ver todos tus túneles activos y `cloudflared tunnel delete mi-tunel` para eliminar uno.
