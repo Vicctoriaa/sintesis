@@ -1,8 +1,8 @@
-# 🗂️ Configuración de LDAP en contenedor
+# Configuración de LDAP en contenedor
 
 ---
 
-## 🧠 1. Instalar LDAP
+## 1. Instalar LDAP
 
 Dentro del contenedor:
 ```bash
@@ -12,7 +12,7 @@ apt install slapd ldap-utils -y
 
 ---
 
-## ⚙️ 2. Configuración inicial (IMPORTANTE)
+## 2. Configuración inicial (IMPORTANTE)
 
 Reconfigura para hacerlo bien:
 ```bash
@@ -34,7 +34,7 @@ dpkg-reconfigure slapd
 
 ---
 
-## ✅ 3. Verificar que funciona
+## 3. Verificar que funciona
 ```bash
 sudo slapcat
 ```
@@ -43,7 +43,7 @@ sudo slapcat
 
 ---
 
-## 🏗️ 4. Crear la estructura base (OUs)
+## 4. Crear la estructura base (OUs)
 
 Crea un fichero `estructura.ldif`:
 ```ldif
@@ -63,7 +63,7 @@ sudo ldapadd -x -D "cn=admin,dc=soc,dc=local" -W -f estructura.ldif
 
 ---
 
-## 🔐 5. Generar hash de contraseña
+## 5. Generar hash de contraseña
 ```bash
 slappasswd -s mi_contraseña_secreta
 ```
@@ -76,21 +76,21 @@ slappasswd -s mi_contraseña_secreta
 echo "=== Generando hashes para grupo ADMIN ==="
 
 echo ""
-echo "👤 Juan Gonzalez (jgonzalez)"
+echo "Juan Gonzalez (jgonzalez)"
 read -s -p "   Contraseña: " pass
 echo ""
 hash=$(slappasswd -s "$pass")
 echo "   Hash: $hash"
 
 echo ""
-echo "👤 Victoria Conde (vconde)"
+echo "Victoria Conde (vconde)"
 read -s -p "   Contraseña: " pass
 echo ""
 hash=$(slappasswd -s "$pass")
 echo "   Hash: $hash"
 
 echo ""
-echo "👤 Victor Martinez (vmartinez)"
+echo "Victor Martinez (vmartinez)"
 read -s -p "   Contraseña: " pass
 echo ""
 hash=$(slappasswd -s "$pass")
@@ -100,7 +100,7 @@ echo ""
 echo "✅ Copia cada hash en su userPassword dentro de usuarios_admin.ldif"
 ---
 
-## 👤 6. Crear un usuario
+## 6. Crear un usuario
 
 Crea `usuario.ldif`:
 ```ldif
@@ -139,7 +139,7 @@ ldapsearch -x -b "ou=usuarios,dc=soc,dc=local" "(uid=jperez)" -D "cn=admin,dc=so
 
 ---
 
-## 🔒 8. Habilitar LDAPS (TLS) — recomendado
+## 8. Habilitar LDAPS (TLS) — recomendado
 ```bash
 sudo apt install ssl-cert
 sudo adduser openldap ssl-cert
