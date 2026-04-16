@@ -1,7 +1,4 @@
 # Alertas por Correo — SOC honeycos
-**Configuracion de Postfix y mailutils · Abril 2026**
-
----
 
 ## 1. Arquitectura del sistema de correo
 
