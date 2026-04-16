@@ -98,6 +98,7 @@ echo "   Hash: $hash"
 
 echo ""
 echo "✅ Copia cada hash en su userPassword dentro de usuarios_admin.ldif"
+
 ---
 
 ## 6. Crear un usuario
