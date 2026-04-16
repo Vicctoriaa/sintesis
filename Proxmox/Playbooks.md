@@ -1,7 +1,5 @@
 # Ansible Playbooks — SOC honeycos
 **Nodo de control:** CT 103 (`playbooks-dns`) — `10.1.1.34`
-**Dominio:** `soc.local`
-**Fecha:** Abril 2026
 
 ---
 
