@@ -1,0 +1,2598 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Honeypot VM203 — SOC honeycos</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-base:        #f0f2f5;
+      --bg-surface:     #ffffff;
+      --bg-card:        #ffffff;
+      --bg-card-hover:  #f7f9fc;
+      --border:         rgba(0,0,0,0.08);
+      --border-strong:  rgba(0,0,0,0.15);
+
+      --text-primary:   #0f1923;
+      --text-secondary: #4a5568;
+      --text-tertiary:  #8a9ab0;
+      --text-mono:      #1a4a7a;
+
+      --green:   #0e7a4e;
+      --green-bg:#e6f4ee;
+      --green-text:#0a5c3a;
+
+      --blue:    #1a5fa8;
+      --blue-bg: #e8f0fb;
+      --blue-text:#1a4a80;
+
+      --amber:   #b06a00;
+      --amber-bg:#fdf3e3;
+      --amber-text:#8a5000;
+
+      --red:     #c0392b;
+      --red-bg:  #fdecea;
+      --red-text:#922b21;
+
+      --gray:    #8a9ab0;
+      --gray-bg: #f0f2f5;
+
+      --font: 'SF Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+    }
+
+    html, body {
+      background: var(--bg-base);
+      color: var(--text-primary);
+      font-family: var(--font-ui);
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    /* ─── Layout ─── */
+    .shell {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 100vh;
+    }
+
+    .topbar {
+      background: #1a2a4a;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 0 24px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .topbar-left { display: flex; align-items: center; gap: 16px; }
+
+    .logo {
+      display: flex; align-items: center; gap: 8px;
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 600;
+      color: #e8edf5;
+      letter-spacing: -0.02em;
+    }
+    .logo-icon {
+      width: 28px; height: 28px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: var(--radius-sm);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-icon svg { width: 14px; height: 14px; }
+
+    .divider-v {
+      width: 1px; height: 20px;
+      background: var(--border-strong);
+    }
+
+    .nav-tabs { display: flex; gap: 2px; }
+    .nav-tab {
+      padding: 5px 12px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.55);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s;
+      border: none;
+      background: none;
+    }
+    .nav-tab:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.9); }
+    .nav-tab.active {
+      background: rgba(255,255,255,0.12);
+      color: #ffffff;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .topbar-right { display: flex; align-items: center; gap: 12px; }
+
+    .live-badge {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11px; font-family: var(--font);
+      color: #6efaaf;
+      background: rgba(14,122,78,0.25);
+      border: 1px solid rgba(14,122,78,0.4);
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+    .live-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .network-badge {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11px; color: rgba(255,255,255,0.45);
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+    .network-icon { width: 10px; height: 10px; }
+
+    .clock {
+      font-family: var(--font);
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+    }
+
+    /* ─── Content ─── */
+    .content { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+
+    /* ─── Alert banner ─── */
+    .alert-banner {
+      background: var(--red-bg);
+      border: 1px solid rgba(240,74,74,0.3);
+      border-left: 3px solid var(--red);
+      border-radius: var(--radius-md);
+      padding: 10px 16px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .alert-label {
+      font-size: 11px; font-family: var(--font);
+      color: var(--red);
+      background: rgba(240,74,74,0.15);
+      padding: 2px 8px; border-radius: 3px;
+      white-space: nowrap;
+    }
+    .alert-text { font-size: 13px; color: var(--red-text); flex: 1; }
+    .alert-time { font-size: 11px; color: var(--red); font-family: var(--font); white-space: nowrap; }
+
+    /* ─── Metric cards ─── */
+    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+
+    .metric {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      border-radius: var(--radius-lg);
+      padding: 16px 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .metric::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
+    .metric.green::before { background: #0e7a4e; }
+    .metric.blue::before  { background: #1a5fa8; }
+    .metric.amber::before { background: #b06a00; }
+    .metric.red::before   { background: #c0392b; }
+
+    .metric-label {
+      font-size: 11px; color: var(--text-tertiary);
+      text-transform: uppercase; letter-spacing: 0.08em;
+      margin-bottom: 10px;
+    }
+    .metric-value {
+      font-size: 28px; font-weight: 700;
+      font-family: var(--font);
+      color: var(--text-primary);
+      letter-spacing: -0.03em;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+    .metric-delta {
+      font-size: 11px; font-family: var(--font);
+    }
+    .metric-delta.up   { color: var(--red); }
+    .metric-delta.ok   { color: var(--green); }
+    .metric-delta.info { color: var(--blue); }
+
+    /* ─── Main grid ─── */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 16px;
+    }
+
+    .left-col { display: flex; flex-direction: column; gap: 16px; }
+    .right-col { display: flex; flex-direction: column; gap: 16px; }
+
+    /* ─── Cards ─── */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      border-radius: var(--radius-lg);
+      padding: 18px 20px;
+    }
+
+    .card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 11px; font-weight: 600;
+      color: var(--text-tertiary);
+      text-transform: uppercase; letter-spacing: 0.1em;
+    }
+    .card-badge {
+      font-size: 10px; font-family: var(--font);
+      padding: 2px 8px; border-radius: 3px;
+    }
+    .card-badge.green { background: var(--green-bg); color: var(--green-text); }
+    .card-badge.red   { background: var(--red-bg); color: var(--red-text); }
+
+    /* ─── Event feed ─── */
+    .event-list { display: flex; flex-direction: column; }
+    .event-row {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .event-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .event-row:first-child { padding-top: 0; }
+
+    .event-indicator {
+      width: 3px; border-radius: 2px;
+      align-self: stretch; flex-shrink: 0;
+      min-height: 36px;
+    }
+    .ind-red    { background: var(--red); }
+    .ind-amber  { background: var(--amber); }
+    .ind-blue   { background: var(--blue); }
+    .ind-green  { background: var(--green); }
+    .ind-gray   { background: var(--gray); }
+
+    .event-body { flex: 1; min-width: 0; }
+    .event-service {
+      font-size: 10px; font-family: var(--font);
+      color: var(--text-tertiary);
+      text-transform: uppercase; letter-spacing: 0.08em;
+      margin-bottom: 2px;
+    }
+    .event-msg { font-size: 13px; color: var(--text-primary); }
+    .event-meta { font-size: 11px; color: var(--text-secondary); margin-top: 2px; font-family: var(--font); }
+
+    .event-right { text-align: right; flex-shrink: 0; }
+    .event-time { font-size: 11px; color: var(--text-tertiary); font-family: var(--font); }
+    .event-tag {
+      font-size: 10px; padding: 2px 7px; border-radius: 3px;
+      font-family: var(--font); display: inline-block; margin-top: 4px;
+    }
+    .tag-red    { background: var(--red-bg);   color: var(--red-text); }
+    .tag-amber  { background: var(--amber-bg); color: var(--amber-text); }
+    .tag-blue   { background: var(--blue-bg);  color: var(--blue-text); }
+    .tag-gray   { background: var(--gray-bg);  color: var(--text-secondary); }
+
+    /* ─── Chart ─── */
+    .chart-wrap { position: relative; }
+    .chart-labels {
+      display: flex; justify-content: space-between;
+      font-size: 10px; color: var(--text-tertiary);
+      font-family: var(--font);
+      margin-top: 6px;
+    }
+
+    canvas { display: block; width: 100% !important; }
+
+    /* ─── Services grid ─── */
+    .svc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .svc-item {
+      background: var(--bg-base);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .svc-port {
+      font-family: var(--font); font-size: 11px;
+      color: #1a5fa8;
+      background: #e8f0fb;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 3px 7px;
+      white-space: nowrap;
+    }
+    .svc-info { flex: 1; min-width: 0; }
+    .svc-name { font-size: 13px; color: var(--text-primary); font-weight: 500; }
+    .svc-hits { font-size: 11px; color: var(--text-tertiary); font-family: var(--font); }
+    .svc-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--green); flex-shrink: 0;
+    }
+
+    /* ─── Bar charts ─── */
+    .bar-list { display: flex; flex-direction: column; gap: 9px; }
+    .bar-row { display: flex; align-items: center; gap: 10px; }
+    .bar-key {
+      font-size: 12px; font-family: var(--font);
+      color: var(--text-secondary);
+      width: 90px; flex-shrink: 0;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .bar-track {
+      flex: 1; height: 5px;
+      background: var(--bg-surface);
+      border-radius: 3px; overflow: hidden;
+    }
+    .bar-fill { height: 100%; border-radius: 3px; }
+    .bar-val {
+      font-size: 12px; font-family: var(--font);
+      color: var(--text-primary); width: 26px; text-align: right;
+    }
+
+    /* ─── IP Table ─── */
+    .ip-table { width: 100%; border-collapse: collapse; }
+    .ip-table th {
+      font-size: 10px; font-weight: 600;
+      color: var(--text-tertiary);
+      text-transform: uppercase; letter-spacing: 0.08em;
+      text-align: left; padding: 0 0 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .ip-table td {
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-primary);
+      vertical-align: middle;
+    }
+    .ip-table tr:last-child td { border-bottom: none; }
+    .ip-addr { font-family: var(--font); color: var(--text-mono); }
+    .ip-flag { color: var(--text-tertiary); font-size: 11px; }
+    .ip-count { font-family: var(--font); font-weight: 600; }
+    .ip-tag {
+      font-size: 10px; padding: 2px 7px; border-radius: 3px;
+      font-family: var(--font);
+    }
+    .it-red   { background: var(--red-bg);   color: var(--red-text); }
+    .it-amber { background: var(--amber-bg); color: var(--amber-text); }
+    .it-blue  { background: var(--blue-bg);  color: var(--blue-text); }
+
+    /* ─── Creds ─── */
+    .cred-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    /* ─── Bottom grid ─── */
+    .bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 1100px) {
+      .main-grid { grid-template-columns: 1fr; }
+      .metrics { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 640px) {
+      .metrics { grid-template-columns: 1fr 1fr; }
+      .svc-grid { grid-template-columns: 1fr; }
+      .bottom-grid { grid-template-columns: 1fr; }
+      .cred-grid { grid-template-columns: 1fr; }
+      .content { padding: 12px; }
+    }
+
+    /* ─── Event panel ─── */
+    #view-eventos { display: none; }
+    #view-ips      { display: none; }
+    #view-servicios { display: none; }
+    #view-logs      { display: none; }
+    #view-resumen  { display: block; }
+
+    .ev-panel { background:#fff; border:1px solid rgba(0,0,0,0.08); border-radius:12px; overflow:hidden; }
+    .ev-header { padding:14px 18px; border-bottom:1px solid rgba(0,0,0,0.08); display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    .ev-title  { font-size:13px; font-weight:500; color:#0f1923; }
+    .ev-count  { font-size:11px; padding:2px 8px; border-radius:10px; background:#f0f2f5; color:#4a5568; border:0.5px solid rgba(0,0,0,0.08); }
+    .ev-search-wrap { position:relative; }
+    .ev-search-wrap input { width:220px; padding:5px 10px 5px 30px; font-size:12px; border:0.5px solid rgba(0,0,0,0.12); border-radius:8px; background:#f0f2f5; color:#0f1923; outline:none; }
+    .ev-search-wrap input:focus { border-color:rgba(0,0,0,0.25); background:#fff; }
+    .ev-search-icon { position:absolute; left:9px; top:50%; transform:translateY(-50%); width:12px; height:12px; opacity:.35; pointer-events:none; }
+    .ev-filter-bar { padding:10px 18px; border-bottom:1px solid rgba(0,0,0,0.08); display:flex; align-items:center; gap:8px; flex-wrap:wrap; background:#f7f9fc; }
+    .ev-filter-label { font-size:11px; color:#8a9ab0; margin-right:2px; white-space:nowrap; }
+    .ev-filter-sep { width:0.5px; background:rgba(0,0,0,0.1); align-self:stretch; margin:0 6px; }
+    .ev-chip { font-size:11px; padding:4px 10px; border-radius:20px; border:0.5px solid rgba(0,0,0,0.1); background:#fff; color:#4a5568; cursor:pointer; transition:all .12s; white-space:nowrap; user-select:none; }
+    .ev-chip:hover { border-color:rgba(0,0,0,0.2); color:#0f1923; }
+    .ev-chip.active { background:#1a2a4a; color:#fff; border-color:#1a2a4a; }
+    .ev-chip.sev-critico.active { background:#c0392b; border-color:#c0392b; }
+    .ev-chip.sev-alto.active    { background:#b06a00; border-color:#b06a00; }
+    .ev-chip.sev-medio.active   { background:#1a5fa8; border-color:#1a5fa8; }
+    .ev-chip.sev-bajo.active    { background:#4a5568; border-color:#4a5568; }
+    .ev-table-wrap { overflow-x:auto; }
+    .ev-table { width:100%; border-collapse:collapse; font-size:12px; table-layout:fixed; }
+    .ev-table thead th { padding:8px 14px; text-align:left; font-size:10px; font-weight:600; color:#8a9ab0; text-transform:uppercase; letter-spacing:.07em; border-bottom:1px solid rgba(0,0,0,0.08); background:#f7f9fc; white-space:nowrap; cursor:pointer; user-select:none; }
+    .ev-table thead th:hover { color:#0f1923; }
+    .ev-table thead th .sort { opacity:.3; margin-left:3px; }
+    .ev-table thead th.sorted .sort { opacity:1; }
+    .ev-col-sev    { width:95px; }
+    .ev-col-ts     { width:95px; }
+    .ev-col-svc    { width:70px; }
+    .ev-col-action { width:110px; }
+    .ev-col-src    { width:125px; }
+    .ev-col-msg    { width:auto; }
+    .ev-col-det    { width:55px; }
+    .ev-table tbody tr { border-bottom:1px solid rgba(0,0,0,0.06); transition:background .1s; }
+    .ev-table tbody tr:last-child { border-bottom:none; }
+    .ev-table tbody tr:hover { background:#f7f9fc; }
+    .ev-table td { padding:9px 14px; vertical-align:middle; color:#0f1923; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ev-sev { display:inline-flex; align-items:center; gap:5px; font-size:10px; font-weight:600; padding:3px 8px; border-radius:3px; white-space:nowrap; }
+    .ev-sev .dot { width:5px; height:5px; border-radius:50%; flex-shrink:0; }
+    .ev-sev-critico { background:#fdecea; color:#922b21; } .ev-sev-critico .dot { background:#c0392b; }
+    .ev-sev-alto    { background:#fdf3e3; color:#8a5000; } .ev-sev-alto .dot    { background:#b06a00; }
+    .ev-sev-medio   { background:#e8f0fb; color:#1a4a80; } .ev-sev-medio .dot   { background:#1a5fa8; }
+    .ev-sev-bajo    { background:#f0f2f5; color:#4a5568; } .ev-sev-bajo .dot    { background:#8a9ab0; }
+    .ev-svc-tag  { font-size:10px; font-family:'SF Mono',Consolas,monospace; padding:2px 7px; border-radius:3px; background:#f0f2f5; color:#4a5568; border:0.5px solid rgba(0,0,0,0.08); }
+    .ev-act-tag  { font-size:11px; font-family:'SF Mono',Consolas,monospace; color:#8a9ab0; }
+    .ev-ip       { font-family:'SF Mono',Consolas,monospace; font-size:11px; color:#1a4a80; }
+    .ev-ts       { font-family:'SF Mono',Consolas,monospace; font-size:11px; color:#8a9ab0; }
+    .ev-msg-main { font-size:12px; color:#0f1923; }
+    .ev-msg-sub  { font-size:11px; color:#8a9ab0; margin-top:1px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ev-det-btn  { font-size:11px; color:#1a5fa8; cursor:pointer; background:none; border:none; padding:3px 6px; border-radius:6px; white-space:nowrap; }
+    .ev-det-btn:hover { background:#e8f0fb; }
+    .ev-detail-row td { background:#f7f9fc; padding:12px 18px; }
+    .ev-detail-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; }
+    .ev-detail-item { display:flex; flex-direction:column; gap:3px; }
+    .ev-detail-key { font-size:10px; color:#8a9ab0; text-transform:uppercase; letter-spacing:.06em; }
+    .ev-detail-val { font-size:12px; font-family:'SF Mono',Consolas,monospace; color:#0f1923; }
+    .ev-footer { padding:10px 18px; border-top:1px solid rgba(0,0,0,0.08); display:flex; align-items:center; justify-content:space-between; background:#f7f9fc; }
+    .ev-footer-info { font-size:11px; color:#8a9ab0; }
+    .ev-pagination { display:flex; gap:4px; align-items:center; }
+    .ev-page-btn { font-size:11px; padding:4px 9px; border:0.5px solid rgba(0,0,0,0.1); border-radius:6px; background:#fff; color:#4a5568; cursor:pointer; }
+    .ev-page-btn:hover { border-color:rgba(0,0,0,0.2); color:#0f1923; }
+    .ev-page-btn.active { background:#1a2a4a; color:#fff; border-color:#1a2a4a; }
+    .ev-empty { padding:48px; text-align:center; color:#8a9ab0; font-size:13px; }
+
+    /* ─── IPs view ─── */
+    .ip-view { display:flex; flex-direction:column; gap:16px; }
+    .ip-toprow { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+    .ip-stat { background:#fff; border:1px solid rgba(0,0,0,0.08); border-radius:12px; padding:16px 20px; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
+    .ip-stat-label { font-size:11px; color:#8a9ab0; text-transform:uppercase; letter-spacing:.08em; margin-bottom:8px; }
+    .ip-stat-value { font-size:26px; font-weight:700; font-family:'SF Mono',Consolas,monospace; color:#0f1923; letter-spacing:-.03em; line-height:1; }
+    .ip-stat-sub { font-size:11px; margin-top:5px; }
+    .ip-main { display:grid; grid-template-columns:1fr 340px; gap:16px; }
+    .ip-map-card { background:#fff; border:1px solid rgba(0,0,0,0.08); border-radius:12px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
+    .ip-map-header { padding:14px 18px; border-bottom:1px solid rgba(0,0,0,0.08); display:flex; align-items:center; justify-content:space-between; }
+    .ip-map-title { font-size:11px; font-weight:600; color:#8a9ab0; text-transform:uppercase; letter-spacing:.1em; }
+    .ip-map-legend { display:flex; gap:12px; align-items:center; }
+    .ip-legend-item { display:flex; align-items:center; gap:5px; font-size:11px; color:#8a9ab0; }
+    .ip-legend-dot { width:8px; height:8px; border-radius:50%; }
+    #ip-map-container { width:100%; display:block; background:#dce8f5; min-height:320px; }
+    .map-country { fill:#d8e4f0; stroke:#b8cce0; stroke-width:0.3; transition:fill .2s; }
+    .map-country:hover { fill:#c0d4e8; }
+    .map-country.attacked { fill:#dce8f5; }
+    .ip-right-col { display:flex; flex-direction:column; gap:12px; }
+    .ip-table-card { background:#fff; border:1px solid rgba(0,0,0,0.08); border-radius:12px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.06); flex:1; }
+    .ip-table-header { padding:12px 16px; border-bottom:1px solid rgba(0,0,0,0.08); display:flex; align-items:center; justify-content:space-between; }
+    .ip-tbl { width:100%; border-collapse:collapse; font-size:12px; }
+    .ip-tbl th { padding:7px 14px; text-align:left; font-size:10px; font-weight:600; color:#8a9ab0; text-transform:uppercase; letter-spacing:.07em; border-bottom:1px solid rgba(0,0,0,0.07); background:#f7f9fc; }
+    .ip-tbl td { padding:8px 14px; border-bottom:1px solid rgba(0,0,0,0.05); vertical-align:middle; color:#0f1923; }
+    .ip-tbl tr:last-child td { border-bottom:none; }
+    .ip-tbl tr:hover td { background:#f7f9fc; }
+    .ip-addr-mono { font-family:'SF Mono',Consolas,monospace; font-size:11px; color:#1a4a80; }
+    .ip-hits-bar { display:flex; align-items:center; gap:6px; }
+    .ip-hits-track { width:60px; height:4px; background:#f0f2f5; border-radius:2px; overflow:hidden; }
+    .ip-hits-fill { height:100%; border-radius:2px; }
+    .ip-hits-num { font-family:'SF Mono',Consolas,monospace; font-size:11px; color:#0f1923; font-weight:600; min-width:26px; }
+    .ip-type-badge { font-size:10px; padding:2px 7px; border-radius:3px; font-family:'SF Mono',Consolas,monospace; white-space:nowrap; }
+    .itb-red   { background:#fdecea; color:#922b21; }
+    .itb-amber { background:#fdf3e3; color:#8a5000; }
+    .itb-blue  { background:#e8f0fb; color:#1a4a80; }
+    .itb-gray  { background:#f0f2f5; color:#4a5568; }
+    .ip-country-card { background:#fff; border:1px solid rgba(0,0,0,0.08); border-radius:12px; padding:16px 18px; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
+    .ip-country-bar-row { display:flex; align-items:center; gap:8px; margin-bottom:9px; }
+    .ip-country-bar-row:last-child { margin-bottom:0; }
+    .ip-country-flag { font-size:14px; width:20px; flex-shrink:0; }
+    .ip-country-name { font-size:12px; color:#4a5568; width:100px; flex-shrink:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ip-country-track { flex:1; height:5px; background:#f0f2f5; border-radius:3px; overflow:hidden; }
+    .ip-country-fill { height:100%; border-radius:3px; background:#1a5fa8; }
+    .ip-country-count { font-size:12px; font-family:'SF Mono',Consolas,monospace; color:#0f1923; font-weight:600; width:28px; text-align:right; }
+    .pulse-ring { fill:none; stroke-width:1.5; }
+
+    /* ─── Servicios view ─── */
+    .svc-view { display:flex; flex-direction:column; gap:16px; }
+
+    .svc-toprow {
+      display:grid;
+      grid-template-columns: repeat(6, minmax(0,1fr));
+      gap:10px;
+    }
+    .svc-status-card {
+      background:#fff; border:1px solid rgba(0,0,0,0.08);
+      border-radius:12px; padding:14px 16px;
+      box-shadow:0 1px 4px rgba(0,0,0,0.06);
+      display:flex; flex-direction:column; gap:6px;
+      position:relative; overflow:hidden;
+    }
+    .svc-status-card::before {
+      content:''; position:absolute; top:0; left:0; right:0; height:3px;
+      border-radius:12px 12px 0 0;
+    }
+    .svc-status-card.up::before   { background:#0e7a4e; }
+    .svc-status-card.down::before { background:#c0392b; }
+    .svc-card-top { display:flex; align-items:center; justify-content:space-between; }
+    .svc-card-name { font-size:12px; font-weight:600; color:#0f1923; }
+    .svc-card-port {
+      font-size:10px; font-family:'SF Mono',Consolas,monospace; color:#1a4a80;
+      background:#e8f0fb; padding:2px 6px; border-radius:3px;
+    }
+    .svc-card-hits {
+      font-size:24px; font-weight:700;
+      font-family:'SF Mono',Consolas,monospace;
+      color:#0f1923; letter-spacing:-.03em; line-height:1;
+    }
+    .svc-card-label { font-size:10px; color:#8a9ab0; text-transform:uppercase; letter-spacing:.06em; }
+    .svc-card-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+    .svc-card-dot.up   { background:#0e7a4e; }
+    .svc-card-dot.down { background:#c0392b; }
+
+    .svc-main-grid {
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:16px;
+    }
+    .svc-full-grid {
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      gap:16px;
+    }
+    .svc-card-lg {
+      background:#fff; border:1px solid rgba(0,0,0,0.08);
+      border-radius:12px; padding:18px 20px;
+      box-shadow:0 1px 4px rgba(0,0,0,0.06);
+      min-width:0;
+    }
+    .svc-section-title {
+      font-size:11px; font-weight:600; color:#8a9ab0;
+      text-transform:uppercase; letter-spacing:.1em;
+      margin-bottom:16px;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .svc-section-badge {
+      font-size:10px; padding:2px 8px; border-radius:10px;
+      background:#f0f2f5; color:#4a5568; font-weight:400;
+      text-transform:none; letter-spacing:0;
+    }
+
+    .timeline-wrap { display:flex; flex-direction:column; gap:9px; }
+    .timeline-row  { display:flex; align-items:center; gap:10px; }
+    .timeline-label {
+      font-size:11px; font-family:'SF Mono',Consolas,monospace;
+      color:#4a5568; width:46px; flex-shrink:0;
+    }
+    .timeline-bars {
+      flex:1; display:flex; gap:2px; align-items:flex-end; height:28px; min-width:0;
+    }
+    .timeline-bar { flex:1; border-radius:2px 2px 0 0; min-height:2px; }
+    .timeline-total {
+      font-size:11px; font-family:'SF Mono',Consolas,monospace;
+      color:#0f1923; font-weight:600; width:28px; text-align:right; flex-shrink:0;
+    }
+
+    .action-list { display:flex; flex-direction:column; gap:10px; }
+    .action-row  { display:flex; align-items:center; gap:10px; }
+    .action-dot  { width:8px; height:8px; border-radius:2px; flex-shrink:0; }
+    .action-name { font-size:12px; color:#4a5568; flex:1; min-width:0; }
+    .action-track { width:90px; height:5px; background:#f0f2f5; border-radius:3px; overflow:hidden; flex-shrink:0; }
+    .action-fill  { height:100%; border-radius:3px; }
+    .action-count {
+      font-size:12px; font-family:'SF Mono',Consolas,monospace;
+      color:#0f1923; font-weight:600; width:32px; text-align:right; flex-shrink:0;
+    }
+
+    .cred-tbl { width:100%; border-collapse:collapse; font-size:12px; }
+    .cred-tbl th {
+      padding:6px 8px; text-align:left; font-size:10px; font-weight:600;
+      color:#8a9ab0; text-transform:uppercase; letter-spacing:.07em;
+      border-bottom:1px solid rgba(0,0,0,0.07); background:#f7f9fc;
+    }
+    .cred-tbl td {
+      padding:7px 8px; border-bottom:1px solid rgba(0,0,0,0.05);
+      vertical-align:middle; color:#0f1923; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    }
+    .cred-tbl tr:last-child td { border-bottom:none; }
+    .cred-tbl tr:hover td { background:#f7f9fc; }
+    .cred-mono { font-family:'SF Mono',Consolas,monospace; font-size:11px; color:#1a4a80; }
+    .cred-rank { font-size:10px; color:#8a9ab0; font-family:'SF Mono',Consolas,monospace; }
+
+    .path-row { display:flex; align-items:center; gap:8px; margin-bottom:9px; }
+    .path-row:last-child { margin-bottom:0; }
+    .path-mono { font-family:'SF Mono',Consolas,monospace; font-size:11px; color:#1a4a80; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .path-bar-wrap { width:70px; height:5px; background:#f0f2f5; border-radius:3px; overflow:hidden; flex-shrink:0; }
+    .path-bar-fill { height:100%; border-radius:3px; background:#1a5fa8; }
+    .path-count { font-size:11px; font-family:'SF Mono',Consolas,monospace; color:#0f1923; font-weight:600; width:24px; text-align:right; flex-shrink:0; }
+
+    .svc-info-row {
+      display:flex; justify-content:space-between; align-items:baseline;
+      font-size:12px; padding:7px 0;
+      border-bottom:1px solid rgba(0,0,0,0.05); gap:8px;
+    }
+    .svc-info-row:last-child { border-bottom:none; }
+    .svc-info-key { color:#8a9ab0; flex-shrink:0; }
+    .svc-info-val { font-family:'SF Mono',Consolas,monospace; color:#0f1923; font-size:11px; text-align:right; }
+    .svc-info-val.green { color:#0e7a4e; }
+
+    @media(max-width:1200px) { .svc-toprow { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+    @media(max-width:900px)  {
+      .svc-main-grid { grid-template-columns:1fr; }
+      .svc-full-grid { grid-template-columns:1fr 1fr; }
+    }
+    @media(max-width:600px)  { .svc-full-grid { grid-template-columns:1fr; } }
+
+    /* ─── Logs view ─── */
+    .logs-view { display:flex; flex-direction:column; gap:16px; }
+    .logs-toprow { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+    .logs-stat {
+      background:#fff; border:1px solid rgba(0,0,0,0.08);
+      border-radius:12px; padding:16px 20px;
+      box-shadow:0 1px 4px rgba(0,0,0,0.06);
+    }
+    .logs-stat-label { font-size:11px; color:#8a9ab0; text-transform:uppercase; letter-spacing:.08em; margin-bottom:8px; }
+    .logs-stat-value { font-size:26px; font-weight:700; font-family:'SF Mono',Consolas,monospace; color:#0f1923; letter-spacing:-.03em; line-height:1; }
+    .logs-stat-sub   { font-size:11px; margin-top:5px; color:#8a9ab0; }
+
+    .logs-main { display:grid; grid-template-columns:1fr 320px; gap:16px; }
+    .logs-card {
+      background:#fff; border:1px solid rgba(0,0,0,0.08);
+      border-radius:12px; overflow:hidden;
+      box-shadow:0 1px 4px rgba(0,0,0,0.06);
+    }
+    .logs-card-pad { padding:18px 20px; }
+    .logs-card-title {
+      font-size:11px; font-weight:600; color:#8a9ab0;
+      text-transform:uppercase; letter-spacing:.1em;
+      padding:14px 18px; border-bottom:1px solid rgba(0,0,0,0.07);
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .logs-card-badge {
+      font-size:10px; padding:2px 8px; border-radius:10px;
+      background:#f0f2f5; color:#4a5568; font-weight:400;
+      text-transform:none; letter-spacing:0;
+    }
+    .logs-card-badge.live {
+      background:#e6f4ee; color:#0a5c3a;
+      animation: badge-pulse 2s infinite;
+    }
+    @keyframes badge-pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+
+    /* Terminal / log viewer */
+    .log-terminal {
+      background:#0f1923; font-family:'SF Mono',Cascadia Code,Consolas,monospace;
+      font-size:11.5px; line-height:1.65; overflow-y:auto;
+      padding:14px 16px; max-height:460px; min-height:320px;
+    }
+    .log-line { display:flex; gap:8px; padding:1px 0; }
+    .log-line:hover { background:rgba(255,255,255,0.03); border-radius:3px; }
+    .log-ts   { color:#4a6080; flex-shrink:0; user-select:none; }
+    .log-lvl  { flex-shrink:0; font-weight:700; min-width:50px; }
+    .log-lvl.INFO    { color:#1fc97a; }
+    .log-lvl.WARNING { color:#f0a030; }
+    .log-lvl.ERROR   { color:#f04a4a; }
+    .log-lvl.DEBUG   { color:#4a6080; }
+    .log-svc  { color:#4a9eff; flex-shrink:0; min-width:42px; }
+    .log-msg  { color:#c8d4e0; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .log-msg .hl-ip   { color:#ffd080; }
+    .log-msg .hl-path { color:#a8d5b5; }
+    .log-msg .hl-cred { color:#f04a4a; }
+    .log-msg .hl-key  { color:#8dc8ff; }
+    .log-new { animation: log-flash .6s ease-out; }
+    @keyframes log-flash { from { background:rgba(74,158,255,0.15); } to { background:transparent; } }
+
+    /* Toolbar */
+    .log-toolbar {
+      padding:10px 14px; border-bottom:1px solid rgba(0,0,0,0.07);
+      display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+      background:#f7f9fc;
+    }
+    .log-search { position:relative; flex:1; min-width:160px; max-width:280px; }
+    .log-search input {
+      width:100%; padding:5px 10px 5px 28px; font-size:12px;
+      font-family:'SF Mono',Consolas,monospace;
+      border:0.5px solid rgba(0,0,0,0.12); border-radius:6px;
+      background:#fff; color:#0f1923; outline:none;
+    }
+    .log-search input:focus { border-color:rgba(0,0,0,0.25); }
+    .log-search-ico { position:absolute; left:8px; top:50%; transform:translateY(-50%); opacity:.35; width:12px; height:12px; }
+    .log-chip {
+      font-size:11px; padding:3px 9px; border-radius:20px;
+      border:0.5px solid rgba(0,0,0,0.1); background:#fff; color:#4a5568;
+      cursor:pointer; user-select:none; transition:all .12s; white-space:nowrap;
+      font-family:'SF Mono',Consolas,monospace;
+    }
+    .log-chip:hover { border-color:rgba(0,0,0,0.2); color:#0f1923; }
+    .log-chip.active { background:#1a2a4a; color:#fff; border-color:#1a2a4a; }
+    .log-chip.lc-error.active   { background:#c0392b; border-color:#c0392b; }
+    .log-chip.lc-warning.active { background:#b06a00; border-color:#b06a00; }
+    .log-chip.lc-info.active    { background:#0e7a4e; border-color:#0e7a4e; }
+    .log-sep { width:0.5px; height:18px; background:rgba(0,0,0,0.1); flex-shrink:0; }
+    .log-count-el { font-size:11px; color:#8a9ab0; white-space:nowrap; margin-left:auto; font-family:'SF Mono',Consolas,monospace; }
+    .log-live-btn {
+      font-size:11px; padding:3px 10px; border-radius:20px;
+      border:0.5px solid rgba(0,0,0,0.1); background:#fff; color:#4a5568;
+      cursor:pointer; user-select:none; transition:all .12s; white-space:nowrap;
+      display:flex; align-items:center; gap:5px;
+    }
+    .log-live-btn.on { background:#e6f4ee; color:#0a5c3a; border-color:rgba(14,122,78,.3); }
+    .log-live-dot { width:5px; height:5px; border-radius:50%; background:#0e7a4e; }
+
+    /* Right col */
+    .logs-right { display:flex; flex-direction:column; gap:12px; }
+    .logs-mini-card {
+      background:#fff; border:1px solid rgba(0,0,0,0.08);
+      border-radius:12px; padding:16px 18px;
+      box-shadow:0 1px 4px rgba(0,0,0,0.06);
+    }
+    .logs-mini-title { font-size:11px; font-weight:600; color:#8a9ab0;
+      text-transform:uppercase; letter-spacing:.1em; margin-bottom:12px; }
+
+    .log-dist-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+    .log-dist-row:last-child { margin-bottom:0; }
+    .log-dist-label { font-size:12px; color:#4a5568; width:70px; flex-shrink:0; }
+    .log-dist-track { flex:1; height:6px; background:#f0f2f5; border-radius:3px; overflow:hidden; }
+    .log-dist-fill  { height:100%; border-radius:3px; }
+    .log-dist-count { font-size:12px; font-family:'SF Mono',Consolas,monospace;
+      color:#0f1923; font-weight:600; width:28px; text-align:right; flex-shrink:0; }
+
+    .log-file-row { display:flex; justify-content:space-between; font-size:12px;
+      padding:6px 0; border-bottom:1px solid rgba(0,0,0,0.05); }
+    .log-file-row:last-child { border-bottom:none; }
+    .log-file-key { color:#8a9ab0; }
+    .log-file-val { font-family:'SF Mono',Consolas,monospace; color:#0f1923; font-size:11px; }
+
+    .log-rotation-bar {
+      height:8px; background:#f0f2f5; border-radius:4px; overflow:hidden; margin:8px 0 4px;
+    }
+    .log-rotation-fill { height:100%; border-radius:4px; background:#1a5fa8; transition:width .8s ease; }
+    .log-rotation-label { display:flex; justify-content:space-between; font-size:10px; color:#8a9ab0; }
+
+    @media(max-width:900px) { .logs-main { grid-template-columns:1fr; } }
+    @media(max-width:600px) { .logs-toprow { grid-template-columns:1fr 1fr; } }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ── Topbar ── -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 14 14" fill="none">
+            <rect x="1" y="1" width="5" height="5" rx="1" fill="#e8edf5"/>
+            <rect x="8" y="1" width="5" height="5" rx="1" fill="#e8edf5" opacity=".5"/>
+            <rect x="1" y="8" width="5" height="5" rx="1" fill="#e8edf5" opacity=".5"/>
+            <rect x="8" y="8" width="5" height="5" rx="1" fill="#e8edf5" opacity=".3"/>
+          </svg>
+        </div>
+        Honeypot VM203
+      </div>
+      <div class="divider-v"></div>
+      <nav class="nav-tabs">
+        <button class="nav-tab active" data-view="resumen">Resumen</button>
+        <button class="nav-tab" data-view="eventos">Eventos</button>
+        <button class="nav-tab" data-view="ips">IPs</button>
+        <button class="nav-tab" data-view="servicios">Servicios</button>
+        <button class="nav-tab" data-view="logs">Logs</button>
+      </nav>
+    </div>
+    <div class="topbar-right">
+      <div class="network-badge">
+        <svg class="network-icon" viewBox="0 0 10 10" fill="none">
+          <circle cx="5" cy="5" r="4" stroke="#555c70" stroke-width="1"/>
+          <path d="M5 1v8M1 5h8M2 2.5C2 2.5 3.5 4 5 4s3-1.5 3-1.5M2 7.5C2 7.5 3.5 6 5 6s3 1.5 3 1.5" stroke="#555c70" stroke-width=".8"/>
+        </svg>
+        solo red interna · 10.1.1.0/24
+      </div>
+      <div class="live-badge"><div class="live-dot"></div>live</div>
+      <div class="clock" id="clock">—</div>
+    </div>
+  </header>
+
+  <!-- ── Content ── -->
+  <main class="content">
+
+    <div id="view-resumen">
+    <!-- Alert -->
+    <div class="alert-banner">
+      <span class="alert-label">CRÍTICO</span>
+      <span class="alert-text">Brute force SSH detectado — <strong>185.220.101.47</strong> · 12 intentos en 60s · usuarios: root, admin, ubuntu</span>
+      <span class="alert-time">hace 3 min</span>
+    </div>
+
+    <!-- Metrics -->
+    <div class="metrics">
+      <div class="metric green">
+        <div class="metric-label">Conexiones hoy</div>
+        <div class="metric-value" id="m-conn">847</div>
+        <div class="metric-delta up">↑ +34% vs ayer</div>
+      </div>
+      <div class="metric blue">
+        <div class="metric-label">Intentos de login</div>
+        <div class="metric-value" id="m-login">312</div>
+        <div class="metric-delta info">SSH 78% · FTP 14% · HTTP 8%</div>
+      </div>
+      <div class="metric red">
+        <div class="metric-label">Brute force</div>
+        <div class="metric-value" id="m-bf">7</div>
+        <div class="metric-delta up">↑ 3 en las últimas 2h</div>
+      </div>
+      <div class="metric amber">
+        <div class="metric-label">IPs únicas</div>
+        <div class="metric-value" id="m-ip">183</div>
+        <div class="metric-delta ok">● 6 servicios activos</div>
+      </div>
+    </div>
+
+    <!-- Main grid -->
+    <div class="main-grid">
+
+      <!-- Left -->
+      <div class="left-col">
+
+        <!-- Activity feed -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Actividad reciente</span>
+            <span class="card-badge green">en vivo</span>
+          </div>
+          <div class="event-list">
+
+            <div class="event-row">
+              <div class="event-indicator ind-red"></div>
+              <div class="event-body">
+                <div class="event-service">ssh · brute_force</div>
+                <div class="event-msg">Brute force detectado — 185.220.101.47</div>
+                <div class="event-meta">12 intentos · root, admin, ubuntu, pi, user</div>
+              </div>
+              <div class="event-right">
+                <div class="event-time">19:11:34</div>
+                <span class="event-tag tag-red">CRÍTICO</span>
+              </div>
+            </div>
+
+            <div class="event-row">
+              <div class="event-indicator ind-amber"></div>
+              <div class="event-body">
+                <div class="event-service">ssh · login_attempt</div>
+                <div class="event-msg">Login exitoso — 45.33.32.156</div>
+                <div class="event-meta">root : root · shell interactiva abierta</div>
+              </div>
+              <div class="event-right">
+                <div class="event-time">19:09:20</div>
+                <span class="event-tag tag-amber">ALTO</span>
+              </div>
+            </div>
+
+            <div class="event-row">
+              <div class="event-indicator ind-blue"></div>
+              <div class="event-body">
+                <div class="event-service">ssh · command</div>
+                <div class="event-msg">Comando ejecutado — cat /etc/passwd</div>
+                <div class="event-meta">45.33.32.156 · sesión activa 00:00:47</div>
+              </div>
+              <div class="event-right">
+                <div class="event-time">19:09:47</div>
+                <span class="event-tag tag-blue">MEDIO</span>
+              </div>
+            </div>
+
+            <div class="event-row">
+              <div class="event-indicator ind-amber"></div>
+              <div class="event-body">
+                <div class="event-service">http · request</div>
+                <div class="event-msg">Acceso a ruta sensible — /.env</div>
+                <div class="event-meta">104.21.8.201 · GET 200 · curl/7.88.1</div>
+              </div>
+              <div class="event-right">
+                <div class="event-time">19:09:10</div>
+                <span class="event-tag tag-amber">ALTO</span>
+              </div>
+            </div>
+
+            <div class="event-row">
+              <div class="event-indicator ind-gray"></div>
+              <div class="event-body">
+                <div class="event-service">ftp · file_access</div>
+                <div class="event-msg">Descarga fichero — /private/credentials.txt</div>
+                <div class="event-meta">91.108.4.23 · anonymous · 512 B</div>
+              </div>
+              <div class="event-right">
+                <div class="event-time">19:07:02</div>
+                <span class="event-tag tag-gray">BAJO</span>
+              </div>
+            </div>
+
+            <div class="event-row">
+              <div class="event-indicator ind-gray"></div>
+              <div class="event-body">
+                <div class="event-service">smb · login_attempt</div>
+                <div class="event-msg">NTLM negotiate — share Finance</div>
+                <div class="event-meta">178.62.1.99 · resultado: capturado</div>
+              </div>
+              <div class="event-right">
+                <div class="event-time">19:04:18</div>
+                <span class="event-tag tag-gray">BAJO</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Traffic chart -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Conexiones últimas 24h</span>
+            <span class="card-badge green">pico: 19:00h</span>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="trafficChart" height="130"></canvas>
+          </div>
+          <div class="chart-labels">
+            <span>00:00</span><span>04:00</span><span>08:00</span>
+            <span>12:00</span><span>16:00</span><span>20:00</span><span>ahora</span>
+          </div>
+        </div>
+
+        <!-- Bottom row -->
+        <div class="bottom-grid">
+
+          <!-- Top IPs -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Top IPs atacantes</span>
+            </div>
+            <table class="ip-table">
+              <thead>
+                <tr>
+                  <th>IP</th>
+                  <th>País</th>
+                  <th>Hits</th>
+                  <th>Tipo</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="ip-addr">185.220.101.47</td>
+                  <td class="ip-flag">🇩🇪</td>
+                  <td class="ip-count">312</td>
+                  <td><span class="ip-tag it-red">brute force</span></td>
+                </tr>
+                <tr>
+                  <td class="ip-addr">45.33.32.156</td>
+                  <td class="ip-flag">🇺🇸</td>
+                  <td class="ip-count">198</td>
+                  <td><span class="ip-tag it-amber">login ssh</span></td>
+                </tr>
+                <tr>
+                  <td class="ip-addr">104.21.8.201</td>
+                  <td class="ip-flag">🇺🇸</td>
+                  <td class="ip-count">145</td>
+                  <td><span class="ip-tag it-blue">scan http</span></td>
+                </tr>
+                <tr>
+                  <td class="ip-addr">91.108.4.23</td>
+                  <td class="ip-flag">🇷🇺</td>
+                  <td class="ip-count">89</td>
+                  <td><span class="ip-tag it-amber">ftp enum</span></td>
+                </tr>
+                <tr>
+                  <td class="ip-addr">178.62.1.99</td>
+                  <td class="ip-flag">🇳🇱</td>
+                  <td class="ip-count">62</td>
+                  <td><span class="ip-tag it-blue">smb ntlm</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Creds -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Credenciales más probadas</span>
+            </div>
+            <div class="bar-list">
+              <div class="bar-row">
+                <span class="bar-key">root/root</span>
+                <div class="bar-track"><div class="bar-fill" style="width:85%;background:var(--red);"></div></div>
+                <span class="bar-val">84</span>
+              </div>
+              <div class="bar-row">
+                <span class="bar-key">admin/admin</span>
+                <div class="bar-track"><div class="bar-fill" style="width:62%;background:var(--red);"></div></div>
+                <span class="bar-val">61</span>
+              </div>
+              <div class="bar-row">
+                <span class="bar-key">root/123456</span>
+                <div class="bar-track"><div class="bar-fill" style="width:40%;background:var(--amber);"></div></div>
+                <span class="bar-val">39</span>
+              </div>
+              <div class="bar-row">
+                <span class="bar-key">ubuntu/ubuntu</span>
+                <div class="bar-track"><div class="bar-fill" style="width:22%;background:var(--amber);"></div></div>
+                <span class="bar-val">22</span>
+              </div>
+              <div class="bar-row">
+                <span class="bar-key">admin/1234</span>
+                <div class="bar-track"><div class="bar-fill" style="width:14%;background:var(--blue);"></div></div>
+                <span class="bar-val">14</span>
+              </div>
+              <div class="bar-row">
+                <span class="bar-key">pi/raspberry</span>
+                <div class="bar-track"><div class="bar-fill" style="width:9%;background:var(--blue);"></div></div>
+                <span class="bar-val">9</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Right -->
+      <div class="right-col">
+
+        <!-- Services -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Servicios</span>
+            <span class="card-badge green">6/6 activos</span>
+          </div>
+          <div class="svc-grid">
+            <div class="svc-item">
+              <span class="svc-port">:22</span>
+              <div class="svc-info">
+                <div class="svc-name">SSH</div>
+                <div class="svc-hits">247 conexiones</div>
+              </div>
+              <div class="svc-dot"></div>
+            </div>
+            <div class="svc-item">
+              <span class="svc-port">:80</span>
+              <div class="svc-info">
+                <div class="svc-name">HTTP</div>
+                <div class="svc-hits">198 requests</div>
+              </div>
+              <div class="svc-dot"></div>
+            </div>
+            <div class="svc-item">
+              <span class="svc-port">:443</span>
+              <div class="svc-info">
+                <div class="svc-name">HTTPS</div>
+                <div class="svc-hits">210 requests</div>
+              </div>
+              <div class="svc-dot"></div>
+            </div>
+            <div class="svc-item">
+              <span class="svc-port">:21</span>
+              <div class="svc-info">
+                <div class="svc-name">FTP</div>
+                <div class="svc-hits">89 conexiones</div>
+              </div>
+              <div class="svc-dot"></div>
+            </div>
+            <div class="svc-item">
+              <span class="svc-port">:445</span>
+              <div class="svc-info">
+                <div class="svc-name">SMB</div>
+                <div class="svc-hits">62 conexiones</div>
+              </div>
+              <div class="svc-dot"></div>
+            </div>
+            <div class="svc-item">
+              <span class="svc-port">:3389</span>
+              <div class="svc-info">
+                <div class="svc-name">RDP</div>
+                <div class="svc-hits">41 conexiones</div>
+              </div>
+              <div class="svc-dot"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- HTTP paths -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Rutas HTTP más accedidas</span>
+          </div>
+          <div class="bar-list">
+            <div class="bar-row">
+              <span class="bar-key">/.env</span>
+              <div class="bar-track"><div class="bar-fill" style="width:90%;background:var(--blue);"></div></div>
+              <span class="bar-val">89</span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-key">/wp-admin</span>
+              <div class="bar-track"><div class="bar-fill" style="width:68%;background:var(--blue);"></div></div>
+              <span class="bar-val">67</span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-key">/admin</span>
+              <div class="bar-track"><div class="bar-fill" style="width:54%;background:var(--blue);"></div></div>
+              <span class="bar-val">53</span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-key">/phpmyadmin</span>
+              <div class="bar-track"><div class="bar-fill" style="width:38%;background:var(--amber);"></div></div>
+              <span class="bar-val">38</span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-key">/config.php</span>
+              <div class="bar-track"><div class="bar-fill" style="width:21%;background:var(--amber);"></div></div>
+              <span class="bar-val">21</span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-key">/manager</span>
+              <div class="bar-track"><div class="bar-fill" style="width:14%;background:var(--gray);"></div></div>
+              <span class="bar-val">14</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mini chart by service -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Distribución por servicio</span>
+          </div>
+          <canvas id="svcChart" height="160"></canvas>
+        </div>
+
+        <!-- System info -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Sistema — VM203</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;justify-content:space-between;font-size:12px;">
+              <span style="color:var(--text-tertiary);">IP / VLAN</span>
+              <span style="font-family:var(--font);color:var(--text-mono);">10.1.1.130 · VLAN 50</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;">
+              <span style="color:var(--text-tertiary);">Uptime</span>
+              <span style="font-family:var(--font);color:var(--text-primary);">7d 3h 22m</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;">
+              <span style="color:var(--text-tertiary);">CPU</span>
+              <span style="font-family:var(--font);color:var(--green);">2.3%</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;">
+              <span style="color:var(--text-tertiary);">RAM</span>
+              <span style="font-family:var(--font);color:var(--text-primary);">312 MB / 1 GB</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;">
+              <span style="color:var(--text-tertiary);">Disco</span>
+              <span style="font-family:var(--font);color:var(--text-primary);">2.1 GB / 16 GB</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;">
+              <span style="color:var(--text-tertiary);">Log actual</span>
+              <span style="font-family:var(--font);color:var(--text-primary);">29 KB / 10 MB</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;">
+              <span style="color:var(--text-tertiary);">Wazuh agent</span>
+              <span style="font-family:var(--font);color:var(--green);">active · ID 007</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    </div><!-- /view-resumen -->
+
+    <!-- ── Panel Eventos ── -->
+    <div id="view-eventos">
+    <div class="ev-panel">
+      <div class="ev-header">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="ev-title">Eventos del honeypot</span>
+          <span class="ev-count" id="ev-count-badge">847 eventos</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="ev-search-wrap">
+            <svg class="ev-search-icon" viewBox="0 0 12 12" fill="none">
+              <circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.2"/>
+              <path d="M8 8l2.5 2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+            </svg>
+            <input type="text" id="ev-search" placeholder="Buscar IP, ruta, usuario...">
+          </div>
+        </div>
+      </div>
+      <div class="ev-filter-bar">
+        <span class="ev-filter-label">Servicio</span>
+        <div style="display:flex;gap:4px;flex-wrap:wrap" id="ev-svc-filters">
+          <span class="ev-chip active" data-svc="all">Todos</span>
+          <span class="ev-chip" data-svc="ssh">SSH</span>
+          <span class="ev-chip" data-svc="http">HTTP</span>
+          <span class="ev-chip" data-svc="https">HTTPS</span>
+          <span class="ev-chip" data-svc="ftp">FTP</span>
+          <span class="ev-chip" data-svc="smb">SMB</span>
+          <span class="ev-chip" data-svc="rdp">RDP</span>
+        </div>
+        <div class="ev-filter-sep"></div>
+        <span class="ev-filter-label">Severidad</span>
+        <div style="display:flex;gap:4px;flex-wrap:wrap" id="ev-sev-filters">
+          <span class="ev-chip active" data-sev="all">Todas</span>
+          <span class="ev-chip sev-critico" data-sev="CRÍTICO">Crítico</span>
+          <span class="ev-chip sev-alto"    data-sev="ALTO">Alto</span>
+          <span class="ev-chip sev-medio"   data-sev="MEDIO">Medio</span>
+          <span class="ev-chip sev-bajo"    data-sev="BAJO">Bajo</span>
+        </div>
+      </div>
+      <div class="ev-table-wrap">
+        <table class="ev-table">
+          <thead>
+            <tr>
+              <th class="ev-col-sev"    data-col="sev">Severidad <span class="sort">↕</span></th>
+              <th class="ev-col-ts sorted" data-col="ts">Hora <span class="sort">↓</span></th>
+              <th class="ev-col-svc"    data-col="svc">Servicio <span class="sort">↕</span></th>
+              <th class="ev-col-action" data-col="action">Acción <span class="sort">↕</span></th>
+              <th class="ev-col-src"    data-col="src">IP origen <span class="sort">↕</span></th>
+              <th class="ev-col-msg">Detalle</th>
+              <th class="ev-col-det"></th>
+            </tr>
+          </thead>
+          <tbody id="ev-tbody"></tbody>
+        </table>
+        <div class="ev-empty" id="ev-empty" style="display:none">No se encontraron eventos con los filtros aplicados.</div>
+      </div>
+      <div class="ev-footer">
+        <span class="ev-footer-info" id="ev-footer-info">Mostrando 1–10 de 847 eventos</span>
+        <div class="ev-pagination" id="ev-pagination"></div>
+      </div>
+    </div>
+    </div>
+
+    <!-- ── Panel IPs ── -->
+    <div id="view-ips">
+    <div class="ip-view">
+
+      <div class="ip-toprow">
+        <div class="ip-stat">
+          <div class="ip-stat-label">IPs únicas hoy</div>
+          <div class="ip-stat-value">183</div>
+          <div class="ip-stat-sub" style="color:#c0392b">↑ +41 vs ayer</div>
+        </div>
+        <div class="ip-stat">
+          <div class="ip-stat-label">Países origen</div>
+          <div class="ip-stat-value">34</div>
+          <div class="ip-stat-sub" style="color:#8a9ab0">en las últimas 24h</div>
+        </div>
+        <div class="ip-stat">
+          <div class="ip-stat-label">IPs bloqueadas</div>
+          <div class="ip-stat-value">12</div>
+          <div class="ip-stat-sub" style="color:#0e7a4e">↓ lista negra activa</div>
+        </div>
+        <div class="ip-stat">
+          <div class="ip-stat-label">Ataques brute force</div>
+          <div class="ip-stat-value">7</div>
+          <div class="ip-stat-sub" style="color:#c0392b">↑ 3 en últimas 2h</div>
+        </div>
+      </div>
+
+      <div class="ip-main">
+
+        <div class="ip-map-card">
+          <div class="ip-map-header">
+            <span class="ip-map-title">Mapa de origen de ataques</span>
+            <div class="ip-map-legend">
+              <div class="ip-legend-item"><div class="ip-legend-dot" style="background:#c0392b"></div>Crítico</div>
+              <div class="ip-legend-item"><div class="ip-legend-dot" style="background:#b06a00"></div>Alto</div>
+              <div class="ip-legend-item"><div class="ip-legend-dot" style="background:#1a5fa8"></div>Medio/Bajo</div>
+            </div>
+          </div>
+          <div id="ip-map-container" style="width:100%;background:#eef2f8;position:relative;"></div>
+        </div>
+
+        <div class="ip-right-col">
+          <div class="ip-table-card">
+            <div class="ip-table-header">
+              <span class="ip-map-title">Top IPs atacantes</span>
+              <span style="font-size:11px;color:#8a9ab0">hoy</span>
+            </div>
+            <table class="ip-tbl">
+              <thead>
+                <tr>
+                  <th>IP</th>
+                  <th>País</th>
+                  <th>Hits</th>
+                  <th>Tipo</th>
+                </tr>
+              </thead>
+              <tbody id="ip-tbl-body">
+              </tbody>
+            </table>
+          </div>
+
+          <div class="ip-country-card">
+            <div class="ip-map-title" style="margin-bottom:14px">Por país</div>
+            <div id="ip-country-bars"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    </div>
+
+    <!-- ── Panel Servicios ── -->
+    <div id="view-servicios">
+    <div class="svc-view">
+
+      <!-- Status cards row -->
+      <div class="svc-toprow" id="svc-status-row"></div>
+
+      <!-- Main grid: timeline + actions -->
+      <div class="svc-main-grid">
+
+        <!-- Actividad por hora -->
+        <div class="svc-card-lg">
+          <div class="svc-section-title">
+            Actividad por hora — últimas 12h
+            <span class="svc-section-badge" id="svc-total-badge">— hits</span>
+          </div>
+          <div class="timeline-wrap" id="svc-timeline"></div>
+        </div>
+
+        <!-- Acciones por servicio -->
+        <div class="svc-card-lg">
+          <div class="svc-section-title">Tipos de acción detectados</div>
+          <div class="action-list" id="svc-actions"></div>
+        </div>
+
+      </div>
+
+      <!-- Bottom: credentials + paths + details -->
+      <div class="svc-full-grid">
+
+        <!-- Top credenciales SSH -->
+        <div class="svc-card-lg">
+          <div class="svc-section-title">
+            Credenciales SSH más probadas
+            <span class="svc-section-badge">:22</span>
+          </div>
+          <table class="cred-tbl">
+            <thead>
+              <tr>
+                <th>#</th><th>Usuario</th><th>Contraseña</th><th>Intentos</th>
+              </tr>
+            </thead>
+            <tbody id="svc-creds-body"></tbody>
+          </table>
+        </div>
+
+        <!-- Rutas HTTP más accedidas -->
+        <div class="svc-card-lg">
+          <div class="svc-section-title">
+            Rutas HTTP/S más accedidas
+            <span class="svc-section-badge">:80 · :443</span>
+          </div>
+          <div id="svc-paths"></div>
+        </div>
+
+        <!-- Detalles técnicos por servicio -->
+        <div class="svc-card-lg">
+          <div class="svc-section-title">Estado técnico</div>
+          <div id="svc-tech-details"></div>
+        </div>
+
+      </div>
+    </div>
+    </div>
+
+    <!-- ── Panel Logs ── -->
+    <div id="view-logs">
+    <div class="logs-view">
+
+      <!-- Stats row -->
+      <div class="logs-toprow">
+        <div class="logs-stat">
+          <div class="logs-stat-label">Eventos totales hoy</div>
+          <div class="logs-stat-value log-count-up" data-target="847">847</div>
+          <div class="logs-stat-sub">↑ +34% vs ayer</div>
+        </div>
+        <div class="logs-stat">
+          <div class="logs-stat-label">Errores (ERROR)</div>
+          <div class="logs-stat-value log-count-up" data-target="7" style="color:#c0392b">7</div>
+          <div class="logs-stat-sub">brute force detectados</div>
+        </div>
+        <div class="logs-stat">
+          <div class="logs-stat-label">Avisos (WARNING)</div>
+          <div class="logs-stat-value log-count-up" data-target="312" style="color:#b06a00">312</div>
+          <div class="logs-stat-sub">intentos de login</div>
+        </div>
+        <div class="logs-stat">
+          <div class="logs-stat-label">Tamaño fichero log</div>
+          <div class="logs-stat-value" style="font-size:20px">29 KB</div>
+          <div class="logs-stat-sub">de 10 MB máximo</div>
+        </div>
+      </div>
+
+      <!-- Main: terminal + right col -->
+      <div class="logs-main">
+
+        <!-- Log viewer -->
+        <div class="logs-card">
+          <div class="logs-card-title">
+            Visor de logs — /var/log/honeypot/honeypot.log
+            <span class="logs-card-badge live" id="log-live-badge">● en vivo</span>
+          </div>
+          <div class="log-toolbar">
+            <div class="log-search">
+              <svg class="log-search-ico" viewBox="0 0 12 12" fill="none">
+                <circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.2"/>
+                <path d="M8 8l2.5 2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+              </svg>
+              <input type="text" id="log-search-input" placeholder="Filtrar logs...">
+            </div>
+            <div class="log-sep"></div>
+            <span class="log-chip active" data-lvl="ALL">ALL</span>
+            <span class="log-chip lc-error"   data-lvl="ERROR">ERROR</span>
+            <span class="log-chip lc-warning" data-lvl="WARNING">WARNING</span>
+            <span class="log-chip lc-info"    data-lvl="INFO">INFO</span>
+            <div class="log-sep"></div>
+            <span class="log-chip active" data-svc2="all">Todos</span>
+            <span class="log-chip" data-svc2="ssh">SSH</span>
+            <span class="log-chip" data-svc2="http">HTTP</span>
+            <span class="log-chip" data-svc2="ftp">FTP</span>
+            <span class="log-chip" data-svc2="smb">SMB</span>
+            <div class="log-sep"></div>
+            <div class="log-live-btn on" id="log-live-btn">
+              <div class="log-live-dot"></div>live
+            </div>
+            <span class="log-count-el" id="log-count-el">— líneas</span>
+          </div>
+          <div class="log-terminal" id="log-terminal"></div>
+        </div>
+
+        <!-- Right column -->
+        <div class="logs-right">
+
+          <!-- Distribución por nivel -->
+          <div class="logs-mini-card">
+            <div class="logs-mini-title">Por nivel</div>
+            <div class="log-dist-row">
+              <span class="log-dist-label">INFO</span>
+              <div class="log-dist-track"><div class="log-dist-fill logs-bar-anim" data-w="65" style="width:0%;background:#0e7a4e"></div></div>
+              <span class="log-dist-count">528</span>
+            </div>
+            <div class="log-dist-row">
+              <span class="log-dist-label">WARNING</span>
+              <div class="log-dist-track"><div class="log-dist-fill logs-bar-anim" data-w="38" style="width:0%;background:#b06a00"></div></div>
+              <span class="log-dist-count">312</span>
+            </div>
+            <div class="log-dist-row">
+              <span class="log-dist-label">ERROR</span>
+              <div class="log-dist-track"><div class="log-dist-fill logs-bar-anim" data-w="1" style="width:0%;background:#c0392b"></div></div>
+              <span class="log-dist-count">7</span>
+            </div>
+            <div class="log-dist-row">
+              <span class="log-dist-label">DEBUG</span>
+              <div class="log-dist-track"><div class="log-dist-fill logs-bar-anim" data-w="8" style="width:0%;background:#4a6080"></div></div>
+              <span class="log-dist-count">62</span>
+            </div>
+          </div>
+
+          <!-- Distribución por servicio -->
+          <div class="logs-mini-card">
+            <div class="logs-mini-title">Por servicio</div>
+            <div class="log-dist-row">
+              <span class="log-dist-label">SSH</span>
+              <div class="log-dist-track"><div class="log-dist-fill logs-bar-anim" data-w="100" style="width:0%;background:#1a5fa8"></div></div>
+              <span class="log-dist-count">341</span>
+            </div>
+            <div class="log-dist-row">
+              <span class="log-dist-label">HTTP/S</span>
+              <div class="log-dist-track"><div class="log-dist-fill logs-bar-anim" data-w="84" style="width:0%;background:#0e7a4e"></div></div>
+              <span class="log-dist-count">286</span>
+            </div>
+            <div class="log-dist-row">
+              <span class="log-dist-label">FTP</span>
+              <div class="log-dist-track"><div class="log-dist-fill logs-bar-anim" data-w="35" style="width:0%;background:#b06a00"></div></div>
+              <span class="log-dist-count">119</span>
+            </div>
+            <div class="log-dist-row">
+              <span class="log-dist-label">SMB</span>
+              <div class="log-dist-track"><div class="log-dist-fill logs-bar-anim" data-w="22" style="width:0%;background:#8a9ab0"></div></div>
+              <span class="log-dist-count">74</span>
+            </div>
+            <div class="log-dist-row">
+              <span class="log-dist-label">RDP</span>
+              <div class="log-dist-track"><div class="log-dist-fill logs-bar-anim" data-w="8" style="width:0%;background:#8a9ab0"></div></div>
+              <span class="log-dist-count">27</span>
+            </div>
+          </div>
+
+          <!-- Fichero de log -->
+          <div class="logs-mini-card">
+            <div class="logs-mini-title">Fichero de log</div>
+            <div class="log-file-row">
+              <span class="log-file-key">Ruta</span>
+              <span class="log-file-val">/var/log/honeypot/</span>
+            </div>
+            <div class="log-file-row">
+              <span class="log-file-key">Fichero</span>
+              <span class="log-file-val">honeypot.log</span>
+            </div>
+            <div class="log-file-row">
+              <span class="log-file-key">Tamaño</span>
+              <span class="log-file-val">29 KB / 10 MB</span>
+            </div>
+            <div class="log-file-row">
+              <span class="log-file-key">Rotación</span>
+              <span class="log-file-val">5 backups</span>
+            </div>
+            <div class="log-file-row">
+              <span class="log-file-key">Formato</span>
+              <span class="log-file-val">JSON · UTF-8</span>
+            </div>
+            <div class="log-rotation-bar">
+              <div class="log-rotation-fill" style="width:0%" id="log-rot-fill"></div>
+            </div>
+            <div class="log-rotation-label">
+              <span>0</span><span id="log-rot-pct">0%</span><span>10 MB</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  /* ── Reloj ── */
+  function tick() {
+    const d = new Date();
+    const pad = n => String(n).padStart(2,'0');
+    document.getElementById('clock').textContent =
+      `${d.getDate()} ${['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][d.getMonth()]} ${d.getFullYear()} · ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())} CEST`;
+  }
+  tick(); setInterval(tick, 1000);
+
+  /* ── Traffic chart ── */
+  const trafficCtx = document.getElementById('trafficChart').getContext('2d');
+  const hours = 24;
+  const trafficData = [8,5,4,3,6,9,14,22,31,28,19,15,18,24,30,38,42,55,68,80,95,82,71,60];
+
+  const grad = trafficCtx.createLinearGradient(0, 0, 0, 130);
+  grad.addColorStop(0, 'rgba(26,95,168,0.15)');
+  grad.addColorStop(1, 'rgba(26,95,168,0)');
+
+  function drawTrafficChart() {
+    const canvas = trafficCtx.canvas;
+    const W = canvas.offsetWidth || 600;
+    const H = 130;
+    canvas.width = W;
+    canvas.height = H;
+
+    const max = Math.max(...trafficData);
+    const pad = { top: 10, right: 8, bottom: 2, left: 32 };
+    const iW = W - pad.left - pad.right;
+    const iH = H - pad.top - pad.bottom;
+
+    trafficCtx.clearRect(0, 0, W, H);
+
+    /* Grid lines */
+    trafficCtx.strokeStyle = 'rgba(0,0,0,0.06)';
+    trafficCtx.lineWidth = 0.5;
+    [0.25, 0.5, 0.75, 1].forEach(r => {
+      const y = pad.top + iH * (1 - r);
+      trafficCtx.beginPath();
+      trafficCtx.moveTo(pad.left, y);
+      trafficCtx.lineTo(W - pad.right, y);
+      trafficCtx.stroke();
+      trafficCtx.fillStyle = 'rgba(0,0,0,0.35)';
+      trafficCtx.font = '9px monospace';
+      trafficCtx.textAlign = 'right';
+      trafficCtx.fillText(Math.round(max * r), pad.left - 4, y + 3);
+    });
+
+    /* Area fill */
+    trafficCtx.beginPath();
+    trafficData.forEach((v, i) => {
+      const x = pad.left + (i / (trafficData.length - 1)) * iW;
+      const y = pad.top + iH * (1 - v / max);
+      i === 0 ? trafficCtx.moveTo(x, y) : trafficCtx.lineTo(x, y);
+    });
+    trafficCtx.lineTo(pad.left + iW, pad.top + iH);
+    trafficCtx.lineTo(pad.left, pad.top + iH);
+    trafficCtx.closePath();
+    trafficCtx.fillStyle = grad;
+    trafficCtx.fill();
+
+    /* Line */
+    trafficCtx.beginPath();
+    trafficCtx.strokeStyle = '#1a5fa8';
+    trafficCtx.lineWidth = 1.5;
+    trafficCtx.lineJoin = 'round';
+    trafficData.forEach((v, i) => {
+      const x = pad.left + (i / (trafficData.length - 1)) * iW;
+      const y = pad.top + iH * (1 - v / max);
+      i === 0 ? trafficCtx.moveTo(x, y) : trafficCtx.lineTo(x, y);
+    });
+    trafficCtx.stroke();
+
+    /* Last dot */
+    const lx = pad.left + iW;
+    const ly = pad.top + iH * (1 - trafficData[trafficData.length-1] / max);
+    trafficCtx.beginPath();
+    trafficCtx.arc(lx, ly, 3, 0, Math.PI * 2);
+    trafficCtx.fillStyle = '#1a5fa8';
+    trafficCtx.fill();
+  }
+  drawTrafficChart();
+
+  /* ── Service donut chart ── */
+  const svcCtx = document.getElementById('svcChart').getContext('2d');
+  const svcData = [247, 210, 198, 89, 62, 41];
+  const svcLabels = ['SSH', 'HTTPS', 'HTTP', 'FTP', 'SMB', 'RDP'];
+  const svcColors = ['#4a9eff','#1fc97a','#378ADD','#f0a030','#f04a4a','#8a90a0'];
+
+  function drawSvcChart() {
+    const canvas = svcCtx.canvas;
+    const W = canvas.offsetWidth || 300;
+    const H = 160;
+    canvas.width = W;
+    canvas.height = H;
+    svcCtx.clearRect(0, 0, W, H);
+
+    const total = svcData.reduce((a, b) => a + b, 0);
+    const cx = W / 2 - 60, cy = H / 2, r = 55, inner = 32;
+    let angle = -Math.PI / 2;
+
+    svcData.forEach((v, i) => {
+      const slice = (v / total) * Math.PI * 2;
+      svcCtx.beginPath();
+      svcCtx.moveTo(cx, cy);
+      svcCtx.arc(cx, cy, r, angle, angle + slice);
+      svcCtx.closePath();
+      svcCtx.fillStyle = svcColors[i];
+      svcCtx.fill();
+      angle += slice;
+    });
+
+    /* Inner hole */
+    svcCtx.beginPath();
+    svcCtx.arc(cx, cy, inner, 0, Math.PI * 2);
+    svcCtx.fillStyle = '#ffffff';
+    svcCtx.fill();
+
+    /* Center label */
+    svcCtx.fillStyle = '#0f1923';
+    svcCtx.font = '600 16px monospace';
+    svcCtx.textAlign = 'center';
+    svcCtx.fillText(total, cx, cy + 2);
+    svcCtx.font = '9px monospace';
+    svcCtx.fillStyle = '#8a9ab0';
+    svcCtx.fillText('hits', cx, cy + 13);
+
+    /* Legend */
+    const lx = W / 2 + 12, gap = 24;
+    svcLabels.forEach((lbl, i) => {
+      const ly = (H - svcLabels.length * gap) / 2 + i * gap + 10;
+      svcCtx.fillStyle = svcColors[i];
+      svcCtx.fillRect(lx, ly - 6, 8, 8);
+      svcCtx.fillStyle = '#4a5568';
+      svcCtx.font = '11px monospace';
+      svcCtx.textAlign = 'left';
+      svcCtx.fillText(`${lbl}`, lx + 12, ly + 1);
+      svcCtx.fillStyle = '#8a9ab0';
+      svcCtx.font = '10px monospace';
+      svcCtx.fillText(`${svcData[i]}`, lx + 50, ly + 1);
+    });
+  }
+  drawSvcChart();
+
+  window.addEventListener('resize', () => {
+    drawTrafficChart();
+    drawSvcChart();
+  });
+
+  /* ── Nav tabs view switching ── */
+  document.querySelectorAll('.nav-tab[data-view]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const view = btn.dataset.view;
+      document.getElementById('view-resumen').style.display  = view === 'resumen'  ? 'block' : 'none';
+      document.getElementById('view-eventos').style.display  = view === 'eventos'  ? 'block' : 'none';
+      document.getElementById('view-ips').style.display      = view === 'ips'       ? 'block' : 'none';
+      document.getElementById('view-servicios').style.display = view === 'servicios' ? 'block' : 'none';
+      document.getElementById('view-logs').style.display      = view === 'logs'       ? 'block' : 'none';
+    });
+  });
+
+  /* ── Events panel data ── */
+  const EV_EVENTS = [
+    {sev:'CRÍTICO',ts:'19:11:34',svc:'ssh',action:'brute_force',src:'185.220.101.47',msg:'Brute force SSH detectado',sub:'12 intentos · root, admin, ubuntu, pi, user',extra:{intentos:12,ventana:'60s',usernames:'root,admin,ubuntu,pi,user',país:'Alemania (DE)'}},
+    {sev:'ALTO',ts:'19:09:20',svc:'ssh',action:'login_attempt',src:'45.33.32.156',msg:'Login SSH exitoso',sub:'usuario: root · contraseña: root',extra:{usuario:'root',resultado:'success',sesión:'pts/0',país:'EE.UU. (US)'}},
+    {sev:'MEDIO',ts:'19:09:51',svc:'ssh',action:'command',src:'45.33.32.156',msg:'Comando ejecutado — env',sub:'credenciales DB expuestas en env vars',extra:{comando:'env',sesión:'pts/0',duración:'51s'}},
+    {sev:'MEDIO',ts:'19:09:47',svc:'ssh',action:'command',src:'45.33.32.156',msg:'Comando ejecutado — cat /etc/passwd',sub:'sesión activa 00:00:47',extra:{comando:'cat /etc/passwd',sesión:'pts/0',duración:'47s'}},
+    {sev:'ALTO',ts:'19:09:10',svc:'http',action:'request',src:'104.21.8.201',msg:'Acceso a ruta sensible /.env',sub:'GET 200 · curl/7.88.1',extra:{método:'GET',ruta:'/.env',status:200,user_agent:'curl/7.88.1',país:'EE.UU. (US)'}},
+    {sev:'ALTO',ts:'19:08:55',svc:'http',action:'request',src:'104.21.8.201',msg:'Acceso a ruta sensible /config.php',sub:'GET 200 · curl/7.88.1',extra:{método:'GET',ruta:'/config.php',status:200,user_agent:'curl/7.88.1',país:'EE.UU. (US)'}},
+    {sev:'MEDIO',ts:'19:08:30',svc:'http',action:'login_attempt',src:'77.91.68.14',msg:'Login fallido /wp-admin',sub:'usuario: admin · POST 200',extra:{método:'POST',ruta:'/wp-admin',usuario:'admin',resultado:'failed',país:'Rusia (RU)'}},
+    {sev:'MEDIO',ts:'19:08:12',svc:'http',action:'login_attempt',src:'77.91.68.14',msg:'Login fallido /phpmyadmin',sub:'usuario: root · POST 200',extra:{método:'POST',ruta:'/phpmyadmin',usuario:'root',resultado:'failed',país:'Rusia (RU)'}},
+    {sev:'BAJO',ts:'19:07:02',svc:'ftp',action:'file_access',src:'91.108.4.23',msg:'Descarga de fichero señuelo',sub:'anonymous · /private/credentials.txt · 512 B',extra:{usuario:'anonymous',fichero:'/private/credentials.txt',dirección:'download',tamaño:'512 B',país:'Rusia (RU)'}},
+    {sev:'BAJO',ts:'19:06:48',svc:'ftp',action:'file_access',src:'91.108.4.23',msg:'Descarga de fichero señuelo',sub:'anonymous · /passwords.txt · 341 B',extra:{usuario:'anonymous',fichero:'/passwords.txt',dirección:'download',tamaño:'341 B',país:'Rusia (RU)'}},
+    {sev:'BAJO',ts:'19:06:30',svc:'ftp',action:'login_attempt',src:'91.108.4.23',msg:'Login FTP anónimo exitoso',sub:'anonymous · resultado: success',extra:{usuario:'anonymous',resultado:'success',país:'Rusia (RU)'}},
+    {sev:'BAJO',ts:'19:05:18',svc:'smb',action:'login_attempt',src:'178.62.1.99',msg:'NTLM negotiate SMB',sub:'share: Finance · resultado: capturado',extra:{share:'Finance',tipo:'NTLM negotiate',resultado:'captured',país:'Países Bajos (NL)'}},
+    {sev:'BAJO',ts:'19:05:02',svc:'smb',action:'connection',src:'178.62.1.99',msg:'Conexión SMB — share Backups',sub:'intento de enumeración',extra:{share:'Backups',país:'Países Bajos (NL)'}},
+    {sev:'BAJO',ts:'19:04:18',svc:'rdp',action:'login_attempt',src:'203.0.113.42',msg:'Cookie mstshash capturada',sub:'mstshash=Administrator',extra:{mstshash:'Administrator',país:'China (CN)'}},
+    {sev:'MEDIO',ts:'19:03:55',svc:'https',action:'request',src:'198.51.100.7',msg:'Scan rutas HTTPS — /admin',sub:'GET 200 · python-requests/2.28.0',extra:{método:'GET',ruta:'/admin',status:200,user_agent:'python-requests/2.28.0',país:'Francia (FR)'}},
+    {sev:'MEDIO',ts:'19:03:40',svc:'https',action:'request',src:'198.51.100.7',msg:'Scan rutas HTTPS — /.env',sub:'GET 200 · python-requests/2.28.0',extra:{método:'GET',ruta:'/.env',status:200,user_agent:'python-requests/2.28.0',país:'Francia (FR)'}},
+    {sev:'CRÍTICO',ts:'19:02:10',svc:'ssh',action:'brute_force',src:'193.32.162.44',msg:'Brute force SSH detectado',sub:'7 intentos · admin, root, test',extra:{intentos:7,ventana:'60s',usernames:'admin,root,test',país:'Ucrania (UA)'}},
+    {sev:'ALTO',ts:'19:01:30',svc:'ssh',action:'login_attempt',src:'193.32.162.44',msg:'Login SSH fallido',sub:'usuario: admin · contraseña: admin123',extra:{usuario:'admin',resultado:'failed',país:'Ucrania (UA)'}},
+    {sev:'MEDIO',ts:'19:00:48',svc:'http',action:'request',src:'45.79.182.33',msg:'Scan /manager — Tomcat 401',sub:'GET 401 · Apache-HttpClient/4.5',extra:{método:'GET',ruta:'/manager',status:401,user_agent:'Apache-HttpClient/4.5',país:'EE.UU. (US)'}},
+    {sev:'BAJO',ts:'18:59:22',svc:'ftp',action:'login_attempt',src:'62.138.7.231',msg:'Login FTP fallido',sub:'usuario: ftpuser · resultado: failed',extra:{usuario:'ftpuser',resultado:'failed',país:'Alemania (DE)'}},
+  ];
+
+  const EV_SEV_ORDER = {CRÍTICO:0,ALTO:1,MEDIO:2,BAJO:3};
+  const EV_PAGE_SIZE = 10;
+  let evSvc = 'all', evSev = 'all', evSearch = '', evSortCol = 'ts', evSortDir = -1, evPage = 0, evExpanded = null;
+
+  function evFiltered() {
+    return EV_EVENTS.filter(e => {
+      if (evSvc !== 'all' && e.svc !== evSvc) return false;
+      if (evSev !== 'all' && e.sev !== evSev) return false;
+      if (evSearch) {
+        const q = evSearch.toLowerCase();
+        if (![e.src,e.msg,e.sub,e.svc,e.action].join(' ').toLowerCase().includes(q)) return false;
+      }
+      return true;
+    }).sort((a,b) => {
+      let va, vb;
+      if (evSortCol==='sev')    { va=EV_SEV_ORDER[a.sev]; vb=EV_SEV_ORDER[b.sev]; }
+      else if (evSortCol==='ts') { va=a.ts; vb=b.ts; }
+      else if (evSortCol==='svc') { va=a.svc; vb=b.svc; }
+      else if (evSortCol==='action') { va=a.action; vb=b.action; }
+      else if (evSortCol==='src') { va=a.src; vb=b.src; }
+      else { return 0; }
+      return va < vb ? evSortDir : va > vb ? -evSortDir : 0;
+    });
+  }
+
+  function evSevBadge(s) {
+    const cls = s==='CRÍTICO'?'ev-sev-critico':s==='ALTO'?'ev-sev-alto':s==='MEDIO'?'ev-sev-medio':'ev-sev-bajo';
+    return `<span class="ev-sev ${cls}"><span class="dot"></span>${s}</span>`;
+  }
+
+  function evRender() {
+    const rows = evFiltered();
+    const total = rows.length;
+    const maxPage = Math.max(0, Math.ceil(total / EV_PAGE_SIZE) - 1);
+    if (evPage > maxPage) evPage = maxPage;
+    const slice = rows.slice(evPage * EV_PAGE_SIZE, (evPage + 1) * EV_PAGE_SIZE);
+
+    const badge = document.getElementById('ev-count-badge');
+    if (badge) badge.textContent = `${total} evento${total!==1?'s':''}`;
+    const fi = document.getElementById('ev-footer-info');
+    if (fi) fi.textContent = `Mostrando ${total===0?0:evPage*EV_PAGE_SIZE+1}–${Math.min((evPage+1)*EV_PAGE_SIZE,total)} de ${total} eventos`;
+
+    const tbody = document.getElementById('ev-tbody');
+    const empty = document.getElementById('ev-empty');
+    if (!tbody) return;
+
+    if (slice.length === 0) {
+      tbody.innerHTML = '';
+      if (empty) empty.style.display = 'block';
+    } else {
+      if (empty) empty.style.display = 'none';
+      tbody.innerHTML = slice.map((e, i) => {
+        const idx = evPage * EV_PAGE_SIZE + i;
+        return `<tr data-ev-idx="${idx}">
+          <td class="ev-col-sev">${evSevBadge(e.sev)}</td>
+          <td class="ev-col-ts"><span class="ev-ts">${e.ts}</span></td>
+          <td class="ev-col-svc"><span class="ev-svc-tag">${e.svc}</span></td>
+          <td class="ev-col-action"><span class="ev-act-tag">${e.action}</span></td>
+          <td class="ev-col-src"><span class="ev-ip">${e.src}</span></td>
+          <td class="ev-col-msg">
+            <div class="ev-msg-main">${e.msg}</div>
+            <div class="ev-msg-sub">${e.sub}</div>
+          </td>
+          <td class="ev-col-det"><button class="ev-det-btn" data-ev-idx="${idx}">ver +</button></td>
+        </tr>`;
+      }).join('');
+    }
+
+    const totalPages = Math.ceil(total / EV_PAGE_SIZE) || 1;
+    let btns = '';
+    if (evPage > 0) btns += `<button class="ev-page-btn" data-page="${evPage-1}">‹</button>`;
+    for (let p=0; p<totalPages; p++) {
+      if (p===0 || p===totalPages-1 || Math.abs(p-evPage)<=1)
+        btns += `<button class="ev-page-btn${p===evPage?' active':''}" data-page="${p}">${p+1}</button>`;
+      else if (Math.abs(p-evPage)===2)
+        btns += `<span style="font-size:11px;color:#8a9ab0;padding:0 2px">…</span>`;
+    }
+    if (evPage < totalPages-1) btns += `<button class="ev-page-btn" data-page="${evPage+1}">›</button>`;
+    const pag = document.getElementById('ev-pagination');
+    if (pag) pag.innerHTML = btns;
+  }
+
+  document.getElementById('ev-svc-filters').addEventListener('click', e => {
+    const chip = e.target.closest('[data-svc]');
+    if (!chip) return;
+    document.querySelectorAll('[data-svc]').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    evSvc = chip.dataset.svc;
+    evPage = 0; evRender();
+  });
+
+  document.getElementById('ev-sev-filters').addEventListener('click', e => {
+    const chip = e.target.closest('[data-sev]');
+    if (!chip) return;
+    document.querySelectorAll('[data-sev]').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    evSev = chip.dataset.sev;
+    evPage = 0; evRender();
+  });
+
+  document.getElementById('ev-search').addEventListener('input', e => {
+    evSearch = e.target.value;
+    evPage = 0; evRender();
+  });
+
+  document.querySelector('.ev-table thead').addEventListener('click', e => {
+    const th = e.target.closest('th[data-col]');
+    if (!th) return;
+    const col = th.dataset.col;
+    if (evSortCol === col) evSortDir *= -1;
+    else { evSortCol = col; evSortDir = -1; }
+    document.querySelectorAll('.ev-table thead th').forEach(h => {
+      h.classList.remove('sorted');
+      h.querySelector('.sort').textContent = '↕';
+    });
+    th.classList.add('sorted');
+    th.querySelector('.sort').textContent = evSortDir === -1 ? '↓' : '↑';
+    evRender();
+  });
+
+  document.getElementById('ev-pagination').addEventListener('click', e => {
+    const btn = e.target.closest('[data-page]');
+    if (!btn) return;
+    evPage = parseInt(btn.dataset.page);
+    evRender();
+  });
+
+  document.getElementById('ev-tbody').addEventListener('click', e => {
+    const btn = e.target.closest('.ev-det-btn');
+    if (!btn) return;
+    const idx = parseInt(btn.dataset.evIdx);
+    const rows = evFiltered();
+    const ev = rows[idx];
+    if (!ev) return;
+    document.querySelectorAll('.ev-detail-row').forEach(r => r.remove());
+    const tr = btn.closest('tr');
+    if (evExpanded === idx) { evExpanded = null; btn.textContent = 'ver +'; return; }
+    const detailHTML = Object.entries(ev.extra).map(([k,v]) =>
+      `<div class="ev-detail-item"><span class="ev-detail-key">${k}</span><span class="ev-detail-val">${v}</span></div>`
+    ).join('');
+    const detailTr = document.createElement('tr');
+    detailTr.className = 'ev-detail-row';
+    detailTr.innerHTML = `<td colspan="7"><div class="ev-detail-grid">${detailHTML}</div></td>`;
+    tr.after(detailTr);
+    evExpanded = idx;
+    btn.textContent = 'ver −';
+  });
+
+  evRender();
+
+
+
+  /* ── Servicios view ── */
+
+  const SVC_DEF = [
+    { id:'ssh',   name:'SSH',   port:22,   lib:'paramiko 4.0.0',  hits:247, up:true,  color:'#1a5fa8', banner:'SSH-2.0-OpenSSH_8.9p1 Ubuntu-3ubuntu0.6' },
+    { id:'http',  name:'HTTP',  port:80,   lib:'aiohttp 3.13.5',  hits:198, up:true,  color:'#0e7a4e', banner:'Apache/2.4.57 (Ubuntu)' },
+    { id:'https', name:'HTTPS', port:443,  lib:'aiohttp + ssl',   hits:210, up:true,  color:'#0e7a4e', banner:'Apache/2.4.57 (Ubuntu) OpenSSL/3.0.2' },
+    { id:'ftp',   name:'FTP',   port:21,   lib:'pyftpdlib 2.2.0', hits:89,  up:true,  color:'#b06a00', banner:'ProFTPD 1.3.8 Server (Debian)' },
+    { id:'smb',   name:'SMB',   port:445,  lib:'impacket 0.13.0', hits:62,  up:true,  color:'#8a9ab0', banner:'Windows Server 2019 (decoy)' },
+    { id:'rdp',   name:'RDP',   port:3389, lib:'asyncio',         hits:41,  up:true,  color:'#8a9ab0', banner:'Microsoft Terminal Services' },
+  ];
+
+  const SVC_TIMELINE = {
+    ssh:   [4,8,3,2,6,14,22,31,28,19,18,24],
+    http:  [2,4,2,1,3,8,15,20,18,12,10,14],
+    https: [3,5,3,2,4,9,16,21,19,13,11,15],
+    ftp:   [1,2,1,0,2,4,6,10,9,6,5,7],
+    smb:   [0,1,0,0,1,3,5,8,7,4,4,5],
+    rdp:   [0,1,0,0,1,2,4,6,5,3,3,4],
+  };
+
+  const ACTIONS = [
+    { name:'connection',    count:847, color:'#1a5fa8' },
+    { name:'login_attempt', count:312, color:'#b06a00' },
+    { name:'request',       count:408, color:'#0e7a4e' },
+    { name:'command',       count:94,  color:'#8a9ab0' },
+    { name:'brute_force',   count:7,   color:'#c0392b' },
+    { name:'file_access',   count:48,  color:'#8a9ab0' },
+  ];
+
+  const CREDS = [
+    {user:'root',   pass:'root',      n:84},
+    {user:'admin',  pass:'admin',     n:61},
+    {user:'root',   pass:'123456',    n:39},
+    {user:'ubuntu', pass:'ubuntu',    n:22},
+    {user:'admin',  pass:'1234',      n:14},
+    {user:'pi',     pass:'raspberry', n:9},
+    {user:'root',   pass:'toor',      n:7},
+    {user:'user',   pass:'password',  n:5},
+  ];
+
+  const PATHS = [
+    {path:'/.env',        n:89},
+    {path:'/wp-admin',    n:67},
+    {path:'/admin',       n:53},
+    {path:'/phpmyadmin',  n:38},
+    {path:'/config.php',  n:21},
+    {path:'/manager',     n:14},
+    {path:'/login',       n:11},
+  ];
+
+  const TECH = [
+    {svc:'SSH',   key:'Host key',       val:'RSA 2048 (persistida)'},
+    {svc:'SSH',   key:'Shell falsa',    val:'activa · 5 sesiones hoy'},
+    {svc:'HTTP',  key:'Certificado',    val:'autofirmado · válido 365d'},
+    {svc:'FTP',   key:'Filesystem',     val:'virtual · 12 ficheros señuelo'},
+    {svc:'SMB',   key:'Shares',         val:'ADMIN$, C$, Backups, Finance'},
+    {svc:'RDP',   key:'NTLM',          val:'negotiate capturado · 8 veces'},
+    {svc:'ALL',   key:'Brute force',    val:'7 alertas · whitelist activa'},
+    {svc:'ALL',   key:'Log actual',     val:'29 KB / 10 MB'},
+  ];
+
+  let svcAnimated = false;
+
+  function buildServiciosView() {
+    /* Status cards */
+    const row = document.getElementById('svc-status-row');
+    if (row && !row.children.length) {
+      row.innerHTML = SVC_DEF.map(s => `
+        <div class="svc-status-card ${s.up?'up':'down'}">
+          <div class="svc-card-top">
+            <span class="svc-card-name">${s.name}</span>
+            <div class="svc-card-dot ${s.up?'up':'down'}"></div>
+          </div>
+          <div class="svc-card-hits svc-count-anim" data-target="${s.hits}">${s.hits}</div>
+          <div class="svc-card-label">conexiones hoy</div>
+          <span class="svc-card-port">:${s.port}</span>
+        </div>`).join('');
+    }
+
+    /* Timeline */
+    const tl = document.getElementById('svc-timeline');
+    if (tl && !tl.children.length) {
+      const hours = ['08h','09h','10h','11h','12h','13h','14h','15h','16h','17h','18h','19h'];
+      tl.innerHTML = SVC_DEF.map(s => {
+        const data = SVC_TIMELINE[s.id];
+        const max  = Math.max(...Object.values(SVC_TIMELINE).flat());
+        const bars = data.map((v,i) =>
+          `<div class="timeline-bar svc-bar-anim" data-h="${Math.round((v/max)*100)}"
+            style="height:2px;background:${s.color};opacity:${0.5+v/max*0.5}"></div>`
+        ).join('');
+        const total = data.reduce((a,b)=>a+b,0);
+        return `<div class="timeline-row">
+          <span class="timeline-label">${s.name}</span>
+          <div class="timeline-bars">${bars}</div>
+          <span class="timeline-total">${total}</span>
+        </div>`;
+      }).join('');
+
+      const badge = document.getElementById('svc-total-badge');
+      const total = SVC_DEF.reduce((a,s)=>a+s.hits,0);
+      if (badge) badge.textContent = total + ' hits';
+    }
+
+    /* Actions */
+    const actEl = document.getElementById('svc-actions');
+    if (actEl && !actEl.children.length) {
+      const maxA = Math.max(...ACTIONS.map(a=>a.count));
+      actEl.innerHTML = ACTIONS.map(a => {
+        const pct = Math.round((a.count/maxA)*100);
+        return `<div class="action-row">
+          <div class="action-dot" style="background:${a.color}"></div>
+          <span class="action-name">${a.name}</span>
+          <div class="action-track"><div class="action-fill svc-action-anim"
+            data-w="${pct}" style="width:0%;background:${a.color}"></div></div>
+          <span class="action-count">${a.count}</span>
+        </div>`;
+      }).join('');
+    }
+
+    /* Credentials */
+    const cb = document.getElementById('svc-creds-body');
+    if (cb && !cb.children.length) {
+      cb.innerHTML = CREDS.map((c,i) => `<tr>
+        <td class="cred-rank">${String(i+1).padStart(2,'0')}</td>
+        <td><span class="cred-mono">${c.user}</span></td>
+        <td><span class="cred-mono">${c.pass}</span></td>
+        <td style="font-weight:600;font-family:'SF Mono',Consolas,monospace;font-size:12px">${c.n}</td>
+      </tr>`).join('');
+    }
+
+    /* Paths */
+    const pp = document.getElementById('svc-paths');
+    if (pp && !pp.children.length) {
+      const maxP = PATHS[0].n;
+      pp.innerHTML = PATHS.map(p => {
+        const pct = Math.round((p.n/maxP)*100);
+        return `<div class="path-row">
+          <span class="path-mono">${p.path}</span>
+          <div class="path-bar-wrap"><div class="path-bar-fill svc-path-anim"
+            data-w="${pct}" style="width:0%"></div></div>
+          <span class="path-count">${p.n}</span>
+        </div>`;
+      }).join('');
+    }
+
+    /* Tech details */
+    const td = document.getElementById('svc-tech-details');
+    if (td && !td.children.length) {
+      td.innerHTML = TECH.map(t => `
+        <div class="svc-info-row">
+          <span class="svc-info-key"><strong style="color:#4a5568;font-size:10px;text-transform:uppercase;letter-spacing:.05em">${t.svc}</strong> · ${t.key}</span>
+          <span class="svc-info-val">${t.val}</span>
+        </div>`).join('');
+    }
+  }
+
+  function animateServiciosView() {
+    if (svcAnimated || typeof anime === 'undefined') return;
+    svcAnimated = true;
+
+    /* Status card count-up */
+    document.querySelectorAll('.svc-count-anim').forEach(el => {
+      const target = parseInt(el.dataset.target);
+      anime({ targets:{v:0}, v:target, duration:900, easing:'easeOutQuad',
+        update: a => { el.textContent = Math.round(a.animations[0].currentValue); } });
+    });
+
+    /* Status cards slide in */
+    anime({ targets:'.svc-status-card', opacity:[0,1], translateY:[-12,0],
+      duration:400, delay:anime.stagger(60), easing:'easeOutQuad' });
+
+    /* Timeline bars grow up */
+    document.querySelectorAll('.svc-bar-anim').forEach((el, i) => {
+      const h = parseInt(el.dataset.h);
+      anime({ targets:el, height:[2, Math.max(4, Math.round(h*0.3))],
+        duration:600, delay:150 + Math.floor(i/12)*80 + (i%12)*25,
+        easing:'easeOutCubic' });
+    });
+
+    /* Action bars grow */
+    anime({ targets:'.svc-action-anim',
+      width: el => el.dataset.w + '%',
+      duration:700, delay:anime.stagger(60, {start:300}), easing:'easeOutCubic' });
+
+    /* Path bars */
+    anime({ targets:'.svc-path-anim',
+      width: el => el.dataset.w + '%',
+      duration:700, delay:anime.stagger(55, {start:400}), easing:'easeOutCubic' });
+
+    /* Cred rows */
+    anime({ targets:'#svc-creds-body tr', opacity:[0,1], translateX:[-8,0],
+      duration:350, delay:anime.stagger(45, {start:250}), easing:'easeOutQuad' });
+
+    /* Tech details rows */
+    anime({ targets:'.svc-info-row', opacity:[0,1],
+      duration:300, delay:anime.stagger(40, {start:350}), easing:'easeOutQuad' });
+  }
+
+  /* Nav tab trigger */
+  document.querySelector('.nav-tabs').addEventListener('click', e => {
+    const btn = e.target.closest('[data-view]');
+    if (btn && btn.dataset.view === 'servicios') {
+      buildServiciosView();
+      setTimeout(animateServiciosView, 80);
+    }
+  });
+
+
+
+  /* ── Logs view ── */
+
+  const LOG_ENTRIES = [
+    {ts:'19:11:34.221',lvl:'ERROR',  svc:'ssh',  action:'brute_force',   src:'185.220.101.47', msg:'brute_force detected · 12 attempts · root,admin,ubuntu'},
+    {ts:'19:09:20.587',lvl:'WARNING',svc:'ssh',  action:'login_attempt', src:'45.33.32.156',   msg:'login_attempt · user=root · result=success'},
+    {ts:'19:09:47.103',lvl:'INFO',   svc:'ssh',  action:'command',       src:'45.33.32.156',   msg:'command · cat /etc/passwd'},
+    {ts:'19:09:51.340',lvl:'INFO',   svc:'ssh',  action:'command',       src:'45.33.32.156',   msg:'command · env'},
+    {ts:'19:09:10.942',lvl:'WARNING',svc:'http', action:'request',       src:'104.21.8.201',   msg:'request · GET /.env · status=200 · curl/7.88.1'},
+    {ts:'19:08:55.210',lvl:'WARNING',svc:'http', action:'request',       src:'104.21.8.201',   msg:'request · GET /config.php · status=200'},
+    {ts:'19:08:30.774',lvl:'WARNING',svc:'http', action:'login_attempt', src:'77.91.68.14',    msg:'login_attempt · POST /wp-admin · user=admin · failed'},
+    {ts:'19:08:12.009',lvl:'WARNING',svc:'http', action:'login_attempt', src:'77.91.68.14',    msg:'login_attempt · POST /phpmyadmin · user=root · failed'},
+    {ts:'19:07:02.415',lvl:'INFO',   svc:'ftp',  action:'file_access',   src:'91.108.4.23',    msg:'file_access · /private/credentials.txt · download · 512B'},
+    {ts:'19:06:48.118',lvl:'INFO',   svc:'ftp',  action:'file_access',   src:'91.108.4.23',    msg:'file_access · /passwords.txt · download · 341B'},
+    {ts:'19:06:30.882',lvl:'INFO',   svc:'ftp',  action:'login_attempt', src:'91.108.4.23',    msg:'login_attempt · user=anonymous · result=success'},
+    {ts:'19:05:18.503',lvl:'INFO',   svc:'smb',  action:'login_attempt', src:'178.62.1.99',    msg:'NTLM negotiate · share=Finance · captured'},
+    {ts:'19:05:02.290',lvl:'INFO',   svc:'smb',  action:'connection',    src:'178.62.1.99',    msg:'connection · share=Backups'},
+    {ts:'19:04:18.771',lvl:'INFO',   svc:'rdp',  action:'login_attempt', src:'203.0.113.42',   msg:'mstshash=Administrator · captured'},
+    {ts:'19:03:55.441',lvl:'INFO',   svc:'https',action:'request',       src:'198.51.100.7',   msg:'request · GET /admin · status=200 · python-requests/2.28.0'},
+    {ts:'19:03:40.229',lvl:'INFO',   svc:'https',action:'request',       src:'198.51.100.7',   msg:'request · GET /.env · status=200'},
+    {ts:'19:02:10.664',lvl:'ERROR',  svc:'ssh',  action:'brute_force',   src:'193.32.162.44',  msg:'brute_force detected · 7 attempts · admin,root,test'},
+    {ts:'19:01:30.118',lvl:'WARNING',svc:'ssh',  action:'login_attempt', src:'193.32.162.44',  msg:'login_attempt · user=admin · result=failed'},
+    {ts:'19:00:48.882',lvl:'INFO',   svc:'http', action:'request',       src:'45.79.182.33',   msg:'request · GET /manager · status=401'},
+    {ts:'18:59:22.301',lvl:'WARNING',svc:'ftp',  action:'login_attempt', src:'62.138.7.231',   msg:'login_attempt · user=ftpuser · result=failed'},
+    {ts:'18:58:10.774',lvl:'INFO',   svc:'ssh',  action:'connection',    src:'212.47.254.10',  msg:'connection established'},
+    {ts:'18:57:44.003',lvl:'WARNING',svc:'ssh',  action:'login_attempt', src:'212.47.254.10',  msg:'login_attempt · user=root · result=failed'},
+    {ts:'18:56:30.119',lvl:'INFO',   svc:'http', action:'request',       src:'5.188.10.244',   msg:'request · GET /wp-admin · status=200'},
+    {ts:'18:55:11.447',lvl:'DEBUG',  svc:'ssh',  action:'connection',    src:'91.240.118.78',  msg:'ssh_error · transport closed by remote'},
+    {ts:'18:54:02.990',lvl:'INFO',   svc:'smb',  action:'connection',    src:'91.108.4.23',    msg:'connection · share=ADMIN$'},
+    {ts:'18:53:18.337',lvl:'WARNING',svc:'ftp',  action:'login_attempt', src:'185.220.101.47', msg:'login_attempt · user=admin · result=failed'},
+    {ts:'18:52:44.001',lvl:'INFO',   svc:'https',action:'request',       src:'104.21.8.201',   msg:'request · GET /login · status=200'},
+    {ts:'18:51:30.228',lvl:'ERROR',  svc:'ssh',  action:'brute_force',   src:'45.142.212.100', msg:'brute_force detected · 6 attempts · root,ubuntu,pi'},
+    {ts:'18:50:19.114',lvl:'DEBUG',  svc:'ssh',  action:'connection',    src:'45.142.212.100', msg:'ssh_error · auth timeout'},
+    {ts:'18:49:07.559',lvl:'INFO',   svc:'ftp',  action:'file_access',   src:'91.108.4.23',    msg:'file_access · /uploads/shell.php · download'},
+  ];
+
+  function hlLine(entry) {
+    let msg = entry.msg
+      .replace(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/g, '<span class="hl-ip">$1</span>')
+      .replace(/(\/[^\s·]+)/g, '<span class="hl-path">$1</span>')
+      .replace(/(user=[^\s·]+)/g, '<span class="hl-cred">$1</span>')
+      .replace(/(result=success)/g, '<span style="color:#1fc97a">$1</span>')
+      .replace(/(result=failed|brute_force detected)/g, '<span style="color:#f04a4a">$1</span>');
+    return msg;
+  }
+
+  function renderLogLine(entry, flash) {
+    const div = document.createElement('div');
+    div.className = 'log-line' + (flash ? ' log-new' : '');
+    div.dataset.lvl = entry.lvl;
+    div.dataset.svc = entry.svc;
+    div.dataset.raw = (entry.ts + ' ' + entry.lvl + ' ' + entry.svc + ' ' + entry.msg).toLowerCase();
+    div.innerHTML = `<span class="log-ts">${entry.ts}</span><span class="log-lvl ${entry.lvl}">${entry.lvl.padEnd(7)}</span><span class="log-svc">${entry.svc.padEnd(6)}</span><span class="log-msg">${hlLine(entry)}</span>`;
+    return div;
+  }
+
+  let logLvlFilter  = 'ALL';
+  let logSvcFilter  = 'all';
+  let logSearchTerm = '';
+  let logLiveMode   = true;
+  let logInterval   = null;
+  let logBuilt      = false;
+
+  function applyLogFilters() {
+    const term = logSearchTerm.toLowerCase();
+    let visible = 0;
+    document.querySelectorAll('#log-terminal .log-line').forEach(el => {
+      const lvlOk  = logLvlFilter === 'ALL' || el.dataset.lvl === logLvlFilter;
+      const svcOk  = logSvcFilter === 'all' || el.dataset.svc === logSvcFilter;
+      const termOk = !term || el.dataset.raw.includes(term);
+      const show   = lvlOk && svcOk && termOk;
+      el.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+    const el = document.getElementById('log-count-el');
+    if (el) el.textContent = visible + ' líneas';
+  }
+
+  function buildLogsView() {
+    if (logBuilt) return;
+    logBuilt = true;
+    const term = document.getElementById('log-terminal');
+    if (!term) return;
+    LOG_ENTRIES.slice().reverse().forEach(e => {
+      term.appendChild(renderLogLine(e, false));
+    });
+    term.scrollTop = term.scrollHeight;
+    applyLogFilters();
+  }
+
+  function animateLogsView() {
+    if (typeof anime === 'undefined') return;
+
+    // Count up stats
+    document.querySelectorAll('.log-count-up').forEach(el => {
+      const t = parseInt(el.dataset.target);
+      anime({ targets:{v:0}, v:t, duration:900, easing:'easeOutQuad',
+        update: a => { el.textContent = Math.round(a.animations[0].currentValue); } });
+    });
+
+    // Distribution bars
+    const fills = document.querySelectorAll('.logs-bar-anim');
+    fills.forEach(el => { el._w = el.dataset.w + '%'; el.style.width = '0%'; });
+    anime({ targets: fills, width: el => el._w,
+      duration:800, delay:anime.stagger(60, {start:200}), easing:'easeOutCubic' });
+
+    // Rotation bar
+    setTimeout(() => {
+      const fill = document.getElementById('log-rot-fill');
+      const pct  = document.getElementById('log-rot-pct');
+      if (fill) anime({ targets:fill, width:'0.29%', duration:1000, easing:'easeOutCubic',
+        update: () => { if (pct) pct.textContent = '0.29%'; } });
+    }, 400);
+  }
+
+  /* ── Live mode: inject new log lines every ~3s ── */
+  const LIVE_POOL = [
+    {ts:'',lvl:'INFO',   svc:'ssh',  action:'connection',    src:'45.33.32.156',  msg:'connection established'},
+    {ts:'',lvl:'WARNING',svc:'ssh',  action:'login_attempt', src:'45.33.32.156',  msg:'login_attempt · user=root · result=failed'},
+    {ts:'',lvl:'INFO',   svc:'http', action:'request',       src:'104.21.8.201',  msg:'request · GET /wp-admin · status=200 · Nikto/2.1.6'},
+    {ts:'',lvl:'WARNING',svc:'ftp',  action:'login_attempt', src:'91.108.4.23',   msg:'login_attempt · user=ftpuser · result=failed'},
+    {ts:'',lvl:'INFO',   svc:'smb',  action:'connection',    src:'178.62.1.99',   msg:'connection · share=C$'},
+    {ts:'',lvl:'INFO',   svc:'https',action:'request',       src:'198.51.100.7',  msg:'request · GET /.env · status=200'},
+    {ts:'',lvl:'ERROR',  svc:'ssh',  action:'brute_force',   src:'185.220.101.47',msg:'brute_force detected · 5 attempts · root,admin'},
+    {ts:'',lvl:'DEBUG',  svc:'ssh',  action:'connection',    src:'91.240.118.78', msg:'ssh_error · transport closed'},
+  ];
+  let liveIdx = 0;
+
+  function nowTs() {
+    const d = new Date();
+    return [d.getHours(),d.getMinutes(),d.getSeconds()].map(n=>String(n).padStart(2,'0')).join(':')
+      + '.' + String(d.getMilliseconds()).padStart(3,'0');
+  }
+
+  function startLive() {
+    if (logInterval) return;
+    logInterval = setInterval(() => {
+      if (!logLiveMode) return;
+      const term = document.getElementById('log-terminal');
+      if (!term) return;
+      const e = {...LIVE_POOL[liveIdx % LIVE_POOL.length], ts: nowTs()};
+      liveIdx++;
+      const line = renderLogLine(e, true);
+      term.insertBefore(line, term.firstChild);
+      applyLogFilters();
+    }, 3200);
+  }
+
+  /* ── Toolbar interactions ── */
+  function initLogToolbar() {
+    document.querySelectorAll('[data-lvl]').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('[data-lvl]').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        logLvlFilter = chip.dataset.lvl;
+        applyLogFilters();
+      });
+    });
+    document.querySelectorAll('[data-svc2]').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('[data-svc2]').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        logSvcFilter = chip.dataset.svc2;
+        applyLogFilters();
+      });
+    });
+    const searchEl = document.getElementById('log-search-input');
+    if (searchEl) searchEl.addEventListener('input', e => {
+      logSearchTerm = e.target.value;
+      applyLogFilters();
+    });
+    const liveBtn = document.getElementById('log-live-btn');
+    const liveBadge = document.getElementById('log-live-badge');
+    if (liveBtn) liveBtn.addEventListener('click', () => {
+      logLiveMode = !logLiveMode;
+      liveBtn.classList.toggle('on', logLiveMode);
+      if (liveBadge) liveBadge.style.display = logLiveMode ? '' : 'none';
+    });
+  }
+
+  /* Nav tab trigger */
+  document.querySelector('.nav-tabs').addEventListener('click', e => {
+    const btn = e.target.closest('[data-view]');
+    if (btn && btn.dataset.view === 'logs') {
+      buildLogsView();
+      setTimeout(animateLogsView, 80);
+      startLive();
+      initLogToolbar();
+    }
+  });
+
+
+  /* ── IPs view ── */
+
+  const IP_DATA = [
+    {ip:'185.220.101.47', country:'Germany',     flag:'🇩🇪', label:'Alemania',      hits:312, type:'brute force', sev:'critico', lon:10.0,  lat:51.0},
+    {ip:'45.33.32.156',   country:'United States',flag:'🇺🇸', label:'EE.UU.',        hits:198, type:'login ssh',   sev:'alto',    lon:-98.5,  lat:39.5},
+    {ip:'104.21.8.201',   country:'United States',flag:'🇺🇸', label:'EE.UU.',        hits:145, type:'scan http',   sev:'medio',   lon:-95.0,  lat:37.0},
+    {ip:'77.91.68.14',    country:'Russia',       flag:'🇷🇺', label:'Rusia',         hits:134, type:'scan http',   sev:'medio',   lon:37.6,  lat:55.8},
+    {ip:'91.108.4.23',    country:'Russia',       flag:'🇷🇺', label:'Rusia',         hits:89,  type:'ftp enum',    sev:'bajo',    lon:60.0,  lat:54.0},
+    {ip:'193.32.162.44',  country:'Ukraine',      flag:'🇺🇦', label:'Ucrania',       hits:78,  type:'brute force', sev:'critico', lon:31.2,  lat:48.4},
+    {ip:'178.62.1.99',    country:'Netherlands',  flag:'🇳🇱', label:'Países Bajos',  hits:62,  type:'smb ntlm',    sev:'bajo',    lon:5.3,   lat:52.1},
+    {ip:'198.51.100.7',   country:'France',       flag:'🇫🇷', label:'Francia',       hits:58,  type:'scan https',  sev:'medio',   lon:2.3,   lat:46.2},
+    {ip:'203.0.113.42',   country:'China',        flag:'🇨🇳', label:'China',         hits:41,  type:'rdp scan',    sev:'medio',   lon:104.0, lat:35.9},
+    {ip:'62.138.7.231',   country:'Germany',      flag:'🇩🇪', label:'Alemania',      hits:38,  type:'ftp enum',    sev:'bajo',    lon:13.4,  lat:52.5},
+    {ip:'45.79.182.33',   country:'United States',flag:'🇺🇸', label:'EE.UU.',        hits:30,  type:'scan http',   sev:'bajo',    lon:-80.0, lat:35.0},
+    {ip:'103.21.244.0',   country:'Japan',        flag:'🇯🇵', label:'Japón',         hits:24,  type:'ssh scan',    sev:'bajo',    lon:139.7, lat:35.7},
+  ];
+
+  const SEV_COLOR = {critico:'#c0392b', alto:'#b06a00', medio:'#1a5fa8', bajo:'#1a5fa8'};
+  const MAX_HITS = Math.max(...IP_DATA.map(d => d.hits));
+
+  /* ── Build sidebar table ── */
+  const ipTbody = document.getElementById('ip-tbl-body');
+  if (ipTbody) {
+    ipTbody.innerHTML = IP_DATA.slice(0,8).map(d => {
+      const pct = Math.round((d.hits / MAX_HITS) * 100);
+      const bc = d.sev==='critico'?'itb-red':d.sev==='alto'?'itb-amber':d.sev==='medio'?'itb-blue':'itb-gray';
+      return `<tr>
+        <td><span class="ip-addr-mono">${d.ip}</span></td>
+        <td style="font-size:13px">${d.flag} <span style="font-size:11px;color:#4a5568">${d.label}</span></td>
+        <td>
+          <div class="ip-hits-bar">
+            <div class="ip-hits-track"><div class="ip-hits-fill" style="width:${pct}%;background:${SEV_COLOR[d.sev]}"></div></div>
+            <span class="ip-hits-num">${d.hits}</span>
+          </div>
+        </td>
+        <td><span class="ip-type-badge ${bc}">${d.type}</span></td>
+      </tr>`;
+    }).join('');
+  }
+
+  /* ── Build country bars ── */
+  const byCountry = {};
+  IP_DATA.forEach(d => {
+    if (!byCountry[d.label]) byCountry[d.label] = {flag:d.flag, hits:0};
+    byCountry[d.label].hits += d.hits;
+  });
+  const countries = Object.entries(byCountry).sort((a,b) => b[1].hits - a[1].hits).slice(0,7);
+  const maxC = countries[0][1].hits;
+  const cbars = document.getElementById('ip-country-bars');
+  if (cbars) {
+    cbars.innerHTML = countries.map(([name, data]) => {
+      const pct = Math.round((data.hits / maxC) * 100);
+      return `<div class="ip-country-bar-row">
+        <span class="ip-country-flag">${data.flag}</span>
+        <span class="ip-country-name">${name}</span>
+        <div class="ip-country-track"><div class="ip-country-fill" style="width:${pct}%"></div></div>
+        <span class="ip-country-count">${data.hits}</span>
+      </div>`;
+    }).join('');
+  }
+
+  /* ── D3 + TopoJSON world map ── */
+  let mapBuilt = false;
+
+  function buildD3Map() {
+    if (mapBuilt) return;
+    const container = document.getElementById('ip-map-container');
+    if (!container || typeof d3 === 'undefined' || typeof topojson === 'undefined') return;
+    mapBuilt = true;
+
+    const W = container.offsetWidth || 800;
+    const H = Math.round(W * 0.52);
+    container.style.height = H + 'px';
+
+    const svg = d3.select('#ip-map-container')
+      .append('svg')
+      .attr('width', W)
+      .attr('height', H)
+      .style('display','block');
+
+    // Ocean background
+    svg.append('rect')
+      .attr('width', W).attr('height', H)
+      .attr('fill', '#dce8f5');
+
+    const projection = d3.geoNaturalEarth1()
+      .scale(W / 6.0)
+      .translate([W / 2, H / 2]);
+
+    const path = d3.geoPath().projection(projection);
+
+    // Graticule
+    const graticule = d3.geoGraticule()();
+    svg.append('path')
+      .datum(graticule)
+      .attr('d', path)
+      .attr('fill', 'none')
+      .attr('stroke', '#c8d8ec')
+      .attr('stroke-width', 0.3);
+
+    // Attacked country ISO codes
+    const attackedISO = new Set(['DEU','USA','RUS','UKR','NLD','FRA','CHN','JPN']);
+
+    // Load world TopoJSON
+    fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
+      .then(r => r.json())
+      .then(world => {
+        const countries = topojson.feature(world, world.objects.countries);
+
+        // Country fills
+        svg.append('g')
+          .selectAll('path')
+          .data(countries.features)
+          .enter()
+          .append('path')
+          .attr('d', path)
+          .attr('fill', d => {
+            const iso = isoNumericToAlpha3(d.id);
+            return attackedISO.has(iso) ? '#c8d8ee' : '#e8f0f8';
+          })
+          .attr('stroke', '#b8cce0')
+          .attr('stroke-width', 0.4)
+          .on('mouseover', function() { d3.select(this).attr('fill', '#bdd0e8'); })
+          .on('mouseout',  function(evt, d) {
+            const iso = isoNumericToAlpha3(d.id);
+            d3.select(this).attr('fill', attackedISO.has(iso) ? '#c8d8ee' : '#e8f0f8');
+          });
+
+        // Country borders
+        svg.append('path')
+          .datum(topojson.mesh(world, world.objects.countries, (a,b) => a !== b))
+          .attr('d', path)
+          .attr('fill', 'none')
+          .attr('stroke', '#a8bcd4')
+          .attr('stroke-width', 0.5);
+
+        // Markers group
+        const markersG = svg.append('g').attr('id', 'map-markers');
+
+        IP_DATA.forEach((d, i) => {
+          const coords = projection([d.lon, d.lat]);
+          if (!coords) return;
+          const [cx, cy] = coords;
+          const color = SEV_COLOR[d.sev];
+          const rBase = d.sev==='critico' ? 8 : d.sev==='alto' ? 6 : 5;
+
+          const g = markersG.append('g')
+            .attr('class', 'map-marker')
+            .style('cursor', 'pointer');
+
+          // Pulse rings (2)
+          [1, 2].forEach(ri => {
+            g.append('circle')
+              .attr('cx', cx).attr('cy', cy).attr('r', rBase * 0.5)
+              .attr('fill', 'none')
+              .attr('stroke', color)
+              .attr('stroke-width', ri === 1 ? 1.5 : 0.8)
+              .attr('opacity', 0)
+              .attr('class', 'pulse-ring');
+          });
+
+          // Core dot
+          g.append('circle')
+            .attr('cx', cx).attr('cy', cy).attr('r', rBase * 0.45)
+            .attr('fill', color)
+            .attr('opacity', 0)
+            .attr('class', 'marker-dot');
+
+          // Hit area
+          g.append('circle')
+            .attr('cx', cx).attr('cy', cy).attr('r', 14)
+            .attr('fill', 'transparent')
+            .on('mouseenter', (evt) => showIPTooltip(d, evt))
+            .on('mouseleave', hideIPTooltip);
+        });
+
+        // Animate on build
+        animateMarkers();
+      })
+      .catch(err => console.warn('Map load error:', err));
+  }
+
+  /* ── ISO numeric → alpha3 lookup (subset) ── */
+  function isoNumericToAlpha3(id) {
+    const map = {'276':'DEU','840':'USA','643':'RUS','804':'UKR','528':'NLD',
+                 '250':'FRA','156':'CHN','392':'JPN','826':'GBR','056':'BEL',
+                 '724':'ESP','380':'ITA','616':'POL','203':'CZE','040':'AUT'};
+    return map[String(id)] || '';
+  }
+
+  /* ── Tooltip ── */
+  let ipTooltipEl = null;
+  function showIPTooltip(d, evt) {
+    if (!ipTooltipEl) {
+      ipTooltipEl = document.createElement('div');
+      ipTooltipEl.style.cssText = 'position:fixed;background:#0f1923;color:#e8eaf0;padding:9px 13px;border-radius:7px;font-size:11px;font-family:SF Mono,Consolas,monospace;pointer-events:none;z-index:9999;line-height:1.7;box-shadow:0 4px 16px rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.08);';
+      document.body.appendChild(ipTooltipEl);
+    }
+    const color = SEV_COLOR[d.sev];
+    ipTooltipEl.innerHTML =
+      `<div style="color:${color};font-weight:700;margin-bottom:3px">${d.ip}</div>
+       <div>${d.flag} ${d.label}</div>
+       <div style="color:#8a9ab0">${d.hits} conexiones &middot; ${d.type}</div>`;
+    ipTooltipEl.style.display = 'block';
+    moveIPTooltip(evt);
+    document.addEventListener('mousemove', moveIPTooltip);
+  }
+  function moveIPTooltip(evt) {
+    if (!ipTooltipEl) return;
+    ipTooltipEl.style.left = (evt.clientX + 14) + 'px';
+    ipTooltipEl.style.top  = (evt.clientY - 10) + 'px';
+  }
+  function hideIPTooltip() {
+    if (ipTooltipEl) ipTooltipEl.style.display = 'none';
+    document.removeEventListener('mousemove', moveIPTooltip);
+  }
+
+  /* ── Animations with anime.js ── */
+  function animateMarkers() {
+    if (typeof anime === 'undefined') return;
+
+    document.querySelectorAll('.marker-dot').forEach((dot, i) => {
+      anime({ targets: dot, opacity: [0, 0.9], duration: 500, delay: i * 150, easing: 'easeOutQuad' });
+    });
+
+    function pulseRings() {
+      document.querySelectorAll('.map-marker').forEach((g, i) => {
+        const rings = g.querySelectorAll('.pulse-ring');
+        const dot   = g.querySelector('.marker-dot');
+        const rBase = dot ? parseFloat(dot.getAttribute('r')) / 0.45 : 5;
+        rings.forEach((ring, ri) => {
+          anime({
+            targets: ring,
+            r: [rBase * 0.5, rBase * 3.8],
+            opacity: [0.65, 0],
+            duration: 2400,
+            delay: i * 280 + ri * 500,
+            loop: true,
+            easing: 'easeOutExpo'
+          });
+        });
+      });
+    }
+    setTimeout(pulseRings, 600);
+
+    // Country bars animate in
+    const fills = document.querySelectorAll('.ip-country-fill');
+    fills.forEach(el => { el._w = el.style.width; el.style.width = '0%'; });
+    anime({
+      targets: fills,
+      width: (el) => el._w,
+      duration: 800,
+      delay: anime.stagger(70, {start: 300}),
+      easing: 'easeOutCubic'
+    });
+
+    // Table rows
+    anime({
+      targets: '#ip-tbl-body tr',
+      opacity: [0, 1],
+      translateX: [-8, 0],
+      duration: 350,
+      delay: anime.stagger(50, {start: 200}),
+      easing: 'easeOutQuad'
+    });
+
+    // Stats count up
+    document.querySelectorAll('.ip-stat-value').forEach(el => {
+      const target = parseInt(el.textContent);
+      if (!isNaN(target)) {
+        anime({ targets: {v:0}, v: target, duration: 900, easing: 'easeOutQuad',
+          update: a => { el.textContent = Math.round(a.animations[0].currentValue); } });
+      }
+    });
+  }
+
+  /* ── Nav tab trigger ── */
+  document.querySelector('.nav-tabs').addEventListener('click', e => {
+    const btn = e.target.closest('[data-view]');
+    if (btn && btn.dataset.view === 'ips') {
+      setTimeout(buildD3Map, 80);
+    }
+  });
+
+
+</script>
+</body>
+</html>
