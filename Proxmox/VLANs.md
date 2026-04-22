@@ -1,6 +1,12 @@
 # Configuración de VLANs — SOC Proxmox
 
+Este documento detalla la configuración de segmentación de red mediante VLANs en el entorno SOC sobre Proxmox. La segmentación permite aislar cada tipo de servicio en su propia subred, limitando el radio de impacto ante un compromiso y controlando el tráfico entre zonas a través de OpenWRT.
+
+---
+
 ## Esquema de Direccionamiento (Máscara /27)
+
+Todas las VLANs comparten el bloque `10.1.1.0/24` pero se dividen en subredes `/27` de 30 IPs usables cada una, lo que permite una segmentación clara con un consumo de direcciones eficiente.
 
 | VLAN | Rango de Red | IPs Usables | Broadcast | Uso |
 |------|-------------|-------------|-----------|-----|
@@ -8,18 +14,19 @@
 | VLAN 20 | 10.1.1.32/27 | 10.1.1.33 — 10.1.1.62 | 10.1.1.63 | Servicios — DNS, IDS |
 | VLAN 30 | 10.1.1.64/27 | 10.1.1.65 — 10.1.1.94 | 10.1.1.95 | SOC — Grafana, SOAR, SIEM, Gestor — Vaultwarden |
 | VLAN 40 | 10.1.1.96/27 | 10.1.1.97 — 10.1.1.126 | 10.1.1.127 | Producción — Windows AD |
-| VLAN 50 | 10.1.1.128/27 | 10.1.1.129 — 10.1.1.158 | 10.1.1.159 | Honeypot|
+| VLAN 50 | 10.1.1.128/27 | 10.1.1.129 — 10.1.1.158 | 10.1.1.159 | Honeypot |
 
-> Cada subred /27 ofrece 30 IPs usables, suficientes para el entorno del SOC.
+Cada subred `/27` ofrece 30 IPs usables, suficientes para el entorno del SOC.
 
 ---
 
 ## 1. Habilitar VLAN awareness en Proxmox
 
-Editar `/etc/network/interfaces` y añadir `bridge-vlan-aware yes` al bloque de `vmbr1`.  
-La IP base de `vmbr1` usa la primera IP fuera de todas las subredes VLAN como gestión:
+El modo `bridge-vlan-aware` permite que el bridge `vmbr1` procese etiquetas 802.1Q, es decir, que distinga y enrute tráfico de diferentes VLANs sobre el mismo bridge físico. Sin este parámetro, todas las VMs y contenedores conectados a `vmbr1` estarían en la misma red plana.
 
-```
+Editar `/etc/network/interfaces` y añadir `bridge-vlan-aware yes` al bloque de `vmbr1`. La IP base de `vmbr1` usa la primera IP fuera de todas las subredes VLAN como gestión:
+
+```bash
 auto vmbr1
 iface vmbr1 inet static
         address 10.1.1.2/24
@@ -39,9 +46,11 @@ systemctl restart networking
 
 ## 2. Crear interfaces VLAN en Proxmox
 
+Las subinterfaces `vmbr1.X` representan cada VLAN en el host Proxmox. Cada una recibe la primera IP usable de su subred, que actúa como dirección de gestión del host en ese segmento. Esto permite al propio host Proxmox comunicarse con los contenedores de cada VLAN si fuera necesario.
+
 Añadir al final de `/etc/network/interfaces`:
 
-```
+```bash
 auto vmbr1.10
 iface vmbr1.10 inet static
         address 10.1.1.1/27
@@ -84,6 +93,8 @@ vmbr1.50    inet 10.1.1.129/27
 ---
 
 ## 3. Configurar VLANs en OpenWRT (CT100)
+
+OpenWRT gestiona el enrutamiento entre VLANs. Aquí se crean las interfaces lógicas sobre `eth1` (el trunk), asignando a cada una la IP que actuará como gateway para los contenedores de esa VLAN. Los contenedores deben apuntar a estas IPs como su `gw=`.
 
 Entrar al contenedor:
 
@@ -128,7 +139,7 @@ uci commit network
 service network restart
 ```
 
-> La máscara /27 en formato decimal es `255.255.255.224`
+La máscara `/27` en formato decimal es `255.255.255.224`.
 
 Verificar:
 
@@ -139,6 +150,8 @@ ip a | grep eth1
 ---
 
 ## 4. Configurar DHCP por VLAN en OpenWRT
+
+Se configura un servidor DHCP independiente por cada VLAN para que los dispositivos sin IP estática puedan obtener una dirección automáticamente dentro de su segmento. El parámetro `start=10` reserva las primeras 9 IPs usables de cada subred para asignación estática a contenedores y servicios críticos.
 
 ```bash
 uci set dhcp.vlan10=dhcp
@@ -175,11 +188,16 @@ uci commit dhcp
 service dnsmasq restart
 ```
 
-> El `start=10` evita colisionar con las IPs estáticas asignadas a los contenedores.
+El `start=10` evita colisionar con las IPs estáticas asignadas a los contenedores.
+
+- **`limit=20`:** Número máximo de IPs que puede repartir el DHCP en esa VLAN (desde la IP `start`).
+- **`leasetime=12h`:** Tiempo de concesión de la IP antes de que el cliente deba renovarla.
 
 ---
 
 ## 5. Crear zonas de firewall por VLAN en OpenWRT
+
+Cada VLAN necesita su propia zona de firewall para que OpenWRT pueda aplicar políticas diferenciadas. Sin zonas, no es posible controlar el tráfico entre segmentos. El `forward=REJECT` por defecto bloquea el tráfico entre VLANs salvo que se defina explícitamente una regla de forwarding.
 
 ```bash
 uci add firewall zone
@@ -226,3 +244,5 @@ Verificar zonas creadas:
 ```bash
 uci show firewall | grep name
 ```
+
+> **Nota:** `@zone[-1]` es la sintaxis UCI para referenciar el último elemento añadido a una lista. Cada bloque `uci add firewall zone` crea una nueva entrada, y `@zone[-1]` apunta siempre a la recién creada.
