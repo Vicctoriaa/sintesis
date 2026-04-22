@@ -29,7 +29,7 @@ dpkg-reconfigure slapd
 
 | Pregunta | Respuesta |
 |----------|-----------|
-| Omit OpenLDAP server configuration? | ❌ NO |
+| Omit OpenLDAP server configuration? | NO |
 | DNS domain name | `midominio.local` |
 | Organization name | Lo que quieras (ej: `MiEmpresa`) |
 | Administrator password | Pon una y apúntala |
@@ -101,28 +101,28 @@ Cuando se crean varios usuarios a la vez, este script solicita la contraseña de
 echo "=== Generando hashes para grupo ADMIN ==="
 
 echo ""
-echo "Juan Gonzalez (jgonzalez)"
+echo "Jose Pere (jperez)"
 read -s -p " Contraseña: " pass
 echo ""
 hash=$(slappasswd -s "$pass")
 echo " Hash: $hash"
 
 echo ""
-echo "Victoria Conde (vconde)"
+echo "Nerea Lopez (nlopez)"
 read -s -p " Contraseña: " pass
 echo ""
 hash=$(slappasswd -s "$pass")
 echo " Hash: $hash"
 
 echo ""
-echo "Victor Martinez (vmartinez)"
+echo "Alfredo Conde (aconde)"
 read -s -p " Contraseña: " pass
 echo ""
 hash=$(slappasswd -s "$pass")
 echo " Hash: $hash"
 
 echo ""
-echo "✅ Copia cada hash en su userPassword dentro de usuarios_admin.ldif"
+echo "Copia cada hash en su userPassword dentro de usuarios_admin.ldif"
 ```
 
 ---
@@ -159,7 +159,7 @@ sudo ldapadd -x -D "cn=admin,dc=soc,dc=local" -W -f usuario.ldif
 
 ---
 
-## 🔍 7. Consultar el directorio
+## 7. Consultar el directorio
 
 `ldapsearch` permite realizar búsquedas en el directorio autenticándose con el administrador. Es útil para verificar que los usuarios y grupos se han creado correctamente.
 
