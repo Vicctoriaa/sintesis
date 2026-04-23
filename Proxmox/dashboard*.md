@@ -1,13 +1,13 @@
 # Dashboard Honeypot — Arquitectura de recolección de datos
 
 
-## 1. Contexto
+## Contexto
 
 El honeypot (VM203 · 10.1.1.130 · VLAN50) genera eventos JSON estructurados en `/var/log/honeypot/honeypot.log`. El objetivo es que un nodo central pueda leer esos eventos en (casi) tiempo real y alimentar el dashboard sin que el honeypot tenga que exponer ningún puerto adicional ni cambiar su configuración de red.
 
 ---
 
-## 2. Restricciones de red
+## Restricciones de red
 
 | Origen | Destino | Estado |
 |--------|---------|--------|
@@ -20,44 +20,10 @@ El honeypot (VM203 · 10.1.1.130 · VLAN50) genera eventos JSON estructurados en
 
 ---
 
-## 3. Opciones de arquitectura
+## Arquitectura
 
-### Opción A — Rsync/SSH periódico (pull)
 
-```
-VM203 (honeypot)                    CT104 / CT nuevo (VLAN20/30)
-─────────────────                   ────────────────────────────
-honeypot.log  ◄──── rsync/SSH ────── cron cada 60s
-                                     │
-                                     ▼
-                                  servidor API (Flask/FastAPI)
-                                     │
-                                     ▼
-                                  dashboard (fetch cada 30s)
-```
-
-**Cómo funciona:**
-El servidor central hace `rsync` o `scp` del fichero de log desde el honeypot cada minuto. Luego parsea el JSON y lo sirve como API REST al dashboard.
-
-**Ventajas:**
-- Sin cambios en VM203 ni en las reglas de red
-- Usa la infraestructura SSH existente (puerto 2222)
-- Simple y robusto — si falla la red, el siguiente ciclo lo recupera
-
-**Desventajas:**
-- Latencia mínima de ~60 segundos entre evento y dashboard
-- Copia el log completo cada vez (ineficiente a largo plazo, aunque se puede usar `--checksum` con rsync)
-- No es tiempo real
-
-**Implementación:**
-```bash
-# Cron en el servidor central cada minuto
-* * * * * rsync -az -e "ssh -p 2222" root@10.1.1.130:/var/log/honeypot/honeypot.log /data/honeypot/
-```
-
----
-
-### Opción B — Agente Python con HTTP POST (push con regla OpenWRT) ⭐ Recomendada
+### Agente Python con HTTP POST
 
 ```
 VM203 (honeypot)                    CT104 / CT nuevo (VLAN20/30)
@@ -92,7 +58,7 @@ Un script Python ligero en VM203 hace `tail -f` del log y por cada línea nueva 
 VM203
 └── /opt/honeypot/agent.py          # Lee log, hace POST
 
-CT104 o CT nuevo (VLAN20/30)
+CT109 (VLAN20/30)
 ├── /opt/dashboard-api/             # Servidor Flask/FastAPI
 │   ├── app.py                      # API REST
 │   ├── db.py                       # SQLite o JSON en disco
@@ -116,59 +82,7 @@ uci commit firewall && /etc/init.d/firewall restart
 
 ---
 
-### Opción C — Filebeat + Elasticsearch (stack completo)
-
-```
-VM203 (honeypot)                    CT nuevo (VLAN20/30)
-─────────────────                   ──────────────────────
-Filebeat                            Elasticsearch
-  │  monitoriza honeypot.log          │  indexa y almacena
-  └──── beats protocol ─────────────► │
-                                      │
-                                   Kibana / dashboard custom
-                                      │  visualiza en tiempo real
-```
-
-**Ventajas:**
-- Stack profesional estándar en SOC
-- Búsqueda y filtrado muy potentes
-- Retención y rotación de logs integrada
-- Kibana ofrece dashboards listos
-
-**Desventajas:**
-- Elasticsearch requiere mínimo 4-8 GB de RAM — incompatible con la RAM disponible en honeycos (16 GB total con todo lo que ya corre)
-- Complejidad de configuración y mantenimiento elevada
-- Overkill para un SOC de laboratorio
-
----
-
-## 4. Comparativa
-
-| Criterio | Opción A (rsync) | Opción B (agente Python) | Opción C (Filebeat+ES) |
-|----------|-----------------|--------------------------|------------------------|
-| Latencia | ~60s | ~1-2s | <1s |
-| Cambios en red | Ninguno | 1 regla OpenWRT | 1 regla OpenWRT |
-| Cambios en VM203 | Ninguno | Agente Python ligero | Filebeat instalado |
-| RAM adicional | ~50 MB | ~100 MB | 4-8 GB |
-| Complejidad | Baja | Media | Alta |
-| Escalabilidad | Baja | Media | Alta |
-| Tiempo implementación | 1-2h | 4-6h | 1-2 días |
-
----
-
-## 5. Decisión recomendada — Opción B
-
-La opción B es el equilibrio ideal para este SOC:
-
-- **Latencia aceptable** para un entorno de laboratorio
-- **Impacto mínimo** en VM203 — un script Python de ~50 líneas
-- **Una sola regla** de firewall adicional
-- **API REST** reutilizable para futuros proyectos
-- **Dashboard ya desarrollado** — solo hay que apuntar el `fetch()` al nuevo endpoint
-
----
-
-## 6. Plan de implementación — Opción B
+## Plan de implementación
 
 ### Fase 1 — Servidor API (CT104 o CT nuevo)
 
@@ -199,7 +113,7 @@ La opción B es el equilibrio ideal para este SOC:
 
 ---
 
-## 7. Esquema de red final
+## Esquema de red final
 
 ```
                     ┌─────────────────────────────────────────┐
@@ -217,11 +131,11 @@ La opción B es el equilibrio ideal para este SOC:
                     │                                          │
                     │  CT104 · 10.1.1.37                      │
                     │  ├── dashboard-api.service (Flask :5000) │
-                    │  └── nginx :8080 → dashboard HTML        │
+                    │  └── nginx :8765 → dashboard HTML        │
                     └────────────────┬────────────────────────┘
                                      │ proxy_pass (CT105 Nginx)
                     ┌────────────────▼────────────────────────┐
                     │  Acceso externo                          │
-                    │  http://192.168.3.200:8080/dashboard    │
+                    │  http://192.168.3.200:8765/dashboard    │
                     └─────────────────────────────────────────┘
 ```
