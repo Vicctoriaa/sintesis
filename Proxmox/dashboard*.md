@@ -26,7 +26,7 @@ El honeypot (VM203 · 10.1.1.130 · VLAN50) genera eventos JSON estructurados en
 ### Agente Python con HTTP POST
 
 ```
-VM203 (honeypot)                    CT104 / CT nuevo (VLAN20/30)
+VM203 (honeypot)                    CT109 (VLAN20/30)
 ─────────────────                   ────────────────────────────
 agente.py                           servidor API (Flask/FastAPI)
   │                                   │
@@ -73,7 +73,7 @@ CT109 (VLAN20/30)
 uci add firewall rule
 uci set firewall.@rule[-1].src='vlan50'
 uci set firewall.@rule[-1].dest='vlan20'
-uci set firewall.@rule[-1].dest_ip='10.1.1.37'   # CT104
+uci set firewall.@rule[-1].dest_ip='10.1.1.69'   # CT109
 uci set firewall.@rule[-1].dest_port='5000'
 uci set firewall.@rule[-1].proto='tcp'
 uci set firewall.@rule[-1].target='ACCEPT'
@@ -84,7 +84,7 @@ uci commit firewall && /etc/init.d/firewall restart
 
 ## Plan de implementación
 
-### Fase 1 — Servidor API (CT104 o CT nuevo)
+### Fase 1 — Servidor API (CT109)
 
 1. Instalar dependencias: `pip install flask`
 2. Crear `app.py` con endpoints:
@@ -109,7 +109,7 @@ uci commit firewall && /etc/init.d/firewall restart
 1. Modificar el `honeypot-dashboard.html` existente
 2. Reemplazar los datos estáticos por `fetch()` al endpoint de la API
 3. Añadir auto-refresh cada 30 segundos
-4. Desplegar en CT104 o CT105 (Nginx ya configurado)
+4. Desplegar en CT109 (Nginx ya configurado)
 
 ---
 
@@ -118,24 +118,24 @@ uci commit firewall && /etc/init.d/firewall restart
 ```
                     ┌─────────────────────────────────────────┐
                     │  VLAN50 — Honeypot (aislado)            │
-                    │                                          │
+                    │                                         │
                     │  VM203 · 10.1.1.130                     │
-                    │  ├── honeypot.service (6 servicios)      │
-                    │  ├── node_exporter :9100                 │
-                    │  ├── wazuh-agent → VM202:1514            │
-                    │  └── agent.py → CT104:5000 (nueva regla)│
+                    │  ├── honeypot.service (6 servicios)     │
+                    │  ├── node_exporter :9100                │
+                    │  ├── wazuh-agent → VM202:1514           │
+                    │  └── agent.py → CT109:5000 (nueva regla)│
                     └────────────────┬────────────────────────┘
                                      │ HTTP POST (nueva regla OpenWRT)
                     ┌────────────────▼────────────────────────┐
-                    │  VLAN20 — Servicios                      │
-                    │                                          │
-                    │  CT104 · 10.1.1.37                      │
-                    │  ├── dashboard-api.service (Flask :5000) │
-                    │  └── nginx :8765 → dashboard HTML        │
+                    │  VLAN20 — Servicios                     │
+                    │                                         │
+                    │  CT109 · 10.1.1.69                      │
+                    │  ├── dashboard-api.service (Flask :5000)│
+                    │  └── nginx :8765 → dashboard HTML       │
                     └────────────────┬────────────────────────┘
                                      │ proxy_pass (CT105 Nginx)
                     ┌────────────────▼────────────────────────┐
-                    │  Acceso externo                          │
+                    │  Acceso externo                         │
                     │  http://192.168.3.200:8765/dashboard    │
                     └─────────────────────────────────────────┘
 ```
