@@ -1,141 +1,181 @@
 # Dashboard Honeypot — Arquitectura de recolección de datos
 
-
-## Contexto
-
-El honeypot (VM203 · 10.1.1.130 · VLAN50) genera eventos JSON estructurados en `/var/log/honeypot/honeypot.log`. El objetivo es que un nodo central pueda leer esos eventos en (casi) tiempo real y alimentar el dashboard sin que el honeypot tenga que exponer ningún puerto adicional ni cambiar su configuración de red.
+**SOC honeycos**
 
 ---
 
-## Restricciones de red
+## 1. Contexto
 
-| Origen | Destino | Estado |
-|--------|---------|--------|
-| VLAN50 (honeypot) → VLANs internas | REJECT (OpenWRT) |
-| VLAN20/30 → VLAN50 | OK (reglas específicas) |
-| CT101 (Prometheus) → VM203:9100 | OK (rule[12]) |
-| VM202 (Wazuh) → VM203:1514/1515 | OK (rule[11]) |
-
-**Consecuencia importante:** el honeypot no puede iniciar conexiones hacia la red interna, pero la red interna sí puede conectarse al honeypot. Esto condiciona la arquitectura — el agente no puede hacer push hacia el servidor central directamente, salvo que se abra una regla nueva en OpenWRT.
+El honeypot (VM203 · 10.1.1.130 · VLAN50) genera eventos JSON estructurados en `/var/log/honeypot/honeypot.log`. Un agente Python en VM203 lee esos eventos en tiempo real y los envía a una API Flask en CT109 (VLAN30), que los almacena en SQLite y los sirve al dashboard HTML.
 
 ---
 
-## Arquitectura
-
-
-### Agente Python con HTTP POST
+## 2. Arquitectura implementada — Opción B (agente Python + HTTP POST)
 
 ```
-VM203 (honeypot)                    CT109 (VLAN20/30)
-─────────────────                   ────────────────────────────
-agente.py                           servidor API (Flask/FastAPI)
-  │                                   │
-  │  tail -f honeypot.log             │  POST /events  ──► base de datos
-  │  detecta líneas nuevas            │                    (SQLite/JSON)
-  └──── HTTP POST ──────────────────► │
-        cada evento nuevo             │  GET /events   ◄── dashboard
-                                      │  GET /stats        fetch() 30s
-```
-
-**Cómo funciona:**
-Un script Python ligero en VM203 hace `tail -f` del log y por cada línea nueva envía un HTTP POST al servidor central. El servidor acumula los eventos y los sirve como API JSON al dashboard.
-
-**Requiere:** una regla nueva en OpenWRT que permita `VLAN50 → servidor_central:puerto_api`.
-
-**Ventajas:**
-- Latencia muy baja (~1-2 segundos entre evento y dashboard)
-- El agente es ligero (~50 líneas de Python)
-- El servidor puede filtrar, agregar y servir estadísticas
-- Arquitectura escalable — se pueden añadir más fuentes fácilmente
-
-**Desventajas:**
-- Requiere abrir una regla en OpenWRT
-- Si el servidor cae, los eventos se pierden (mitigable con cola local)
-- Más componentes que gestionar
-
-**Componentes:**
-```
-VM203
-└── /opt/honeypot/agent.py          # Lee log, hace POST
-
-CT109 (VLAN20/30)
-├── /opt/dashboard-api/             # Servidor Flask/FastAPI
-│   ├── app.py                      # API REST
-│   ├── db.py                       # SQLite o JSON en disco
-│   └── requirements.txt
-└── /var/www/dashboard/             # Ficheros HTML/CSS/JS del dashboard
-    └── honeypot-dashboard.html
-```
-
-**Regla OpenWRT a añadir:**
-```
-# VM203 (VLAN50) → servidor API (VLAN20) puerto 5000
-uci add firewall rule
-uci set firewall.@rule[-1].src='vlan50'
-uci set firewall.@rule[-1].dest='vlan20'
-uci set firewall.@rule[-1].dest_ip='10.1.1.69'   # CT109
-uci set firewall.@rule[-1].dest_port='5000'
-uci set firewall.@rule[-1].proto='tcp'
-uci set firewall.@rule[-1].target='ACCEPT'
-uci commit firewall && /etc/init.d/firewall restart
+┌─────────────────────────────────────────────────┐
+│  VLAN50 — Honeypot (aislado)                    │
+│                                                  │
+│  VM203 · 10.1.1.130                             │
+│  ├── honeypot.service (SSH/FTP/HTTP/HTTPS/RDP/SMB)
+│  ├── node_exporter :9100                        │
+│  ├── wazuh-agent → VM202:1514                   │
+│  └── honeypot-agent.service                     │
+│      └── agent.py → CT109:5000 (rule[15])       │
+└──────────────────────┬──────────────────────────┘
+                       │ HTTP POST · rule[15] OpenWRT
+                       │ VLAN50 → VLAN30:5000
+┌──────────────────────▼──────────────────────────┐
+│  VLAN30 — SOC                                    │
+│                                                  │
+│  CT109 · 10.1.1.69 · honeypot-dashboard         │
+│  ├── dashboard-api.service (Flask :5000)         │
+│  │   └── /opt/dashboard-api/app.py              │
+│  │       └── events.db (SQLite)                 │
+│  └── nginx :80                                  │
+│      ├── / → /var/www/html/ (dashboard HTML)    │
+│      └── /api/ → proxy Flask:5000              │
+└──────────────────────┬──────────────────────────┘
+                       │ proxy_pass :8765 (CT105 Nginx)
+┌──────────────────────▼──────────────────────────┐
+│  Acceso externo — Basic Auth (admin)             │
+│  http://192.168.3.200:8765                      │
+│  Solo red 192.168.3.0/24 · autenticación requerida
+└──────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Plan de implementación
+## 3. Componentes desplegados
 
-### Fase 1 — Servidor API (CT109)
+### VM203 — Agente (`/opt/honeypot/agent.py`)
 
-1. Instalar dependencias: `pip install flask`
-2. Crear `app.py` con endpoints:
-   - `POST /events` — recibe eventos del agente
-   - `GET /events` — devuelve últimos N eventos (con filtros)
-   - `GET /stats` — devuelve estadísticas agregadas
-3. Configurar como servicio systemd
-4. Configurar Nginx como proxy inverso (ya existe CT105)
+| Campo | Valor |
+|-------|-------|
+| Ruta | `/opt/honeypot/agent.py` |
+| Servicio | `honeypot-agent.service` (enabled, running) |
+| Función | `tail -f` del log · parse JSON · HTTP POST a CT109:5000 |
+| Cola local | 500 eventos en memoria si la API no responde |
+| Retry | 5 intentos con backoff exponencial |
+| Token | `X-Agent-Token: honeypot-soc-2026` |
+| Log propio | `/var/log/honeypot/agent.log` |
 
-### Fase 2 — Agente en VM203
+### CT109 — API Flask (`/opt/dashboard-api/app.py`)
 
-1. Crear `/opt/honeypot/agent.py`:
-   - `tail -f` del log con `follow=True`
-   - Parse de cada línea JSON
-   - HTTP POST al servidor API con retry en caso de fallo
-   - Cola local en memoria para eventos pendientes
-2. Configurar como servicio systemd
-3. Añadir regla OpenWRT
+| Campo | Valor |
+|-------|-------|
+| VMID | 109 |
+| Hostname | honeypot-dashboard |
+| IP | 10.1.1.69/27 |
+| VLAN | 30 — SOC |
+| OS | Debian 12 |
+| RAM | 1 GB |
+| Disco | 16 GB |
+| Servicio | `dashboard-api.service` (enabled, running) |
+| Puerto Flask | 5000 (solo interno) |
+| BD | `/opt/dashboard-api/events.db` (SQLite, máx 10.000 eventos) |
 
-### Fase 3 — Dashboard
+#### Endpoints API
 
-1. Modificar el `honeypot-dashboard.html` existente
-2. Reemplazar los datos estáticos por `fetch()` al endpoint de la API
-3. Añadir auto-refresh cada 30 segundos
-4. Desplegar en CT109 (Nginx ya configurado)
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| POST | `/events` | Recibe evento del agente (requiere X-Agent-Token) |
+| GET | `/events` | Lista eventos con filtros (limit, service, action, level, src_ip, since) |
+| GET | `/stats` | Estadísticas agregadas (ventana configurable, default 24h) |
+| GET | `/health` | Health check |
+
+### CT109 — Dashboard HTML (`/var/www/html/`)
+
+| Fichero | Descripción |
+|---------|-------------|
+| `index.html` | Estructura HTML — 5 pestañas (Resumen, Eventos, IPs, Servicios, Logs) |
+| `assets/css/dashboard.css` | Estilos completos |
+| `assets/js/charts.js` | Gráfico de tráfico 24h + donut servicios (Canvas) |
+| `assets/js/views.js` | Lógica de pestañas, tabla eventos, logs, IPs, servicios |
+| `assets/js/api.js` | Integración API Flask — refresh cada 30s, polling logs cada 3s |
 
 ---
 
-## Esquema de red final
+## 4. Reglas de red
+
+### OpenWRT (VM201)
+
+| Rule | Nombre | Descripción |
+|------|--------|-------------|
+| rule[15] | honeypot-to-dashboard-api | VLAN50 → VLAN30 · 10.1.1.69:5000 · TCP |
+
+### honeycos — iptables
+
+| Regla | Descripción |
+|-------|-------------|
+| PREROUTING DNAT | `tcp dpt:8765 → 10.1.1.35:8765` |
+| FORWARD ACCEPT | `tcp dpt:8765 → 10.1.1.35` |
+| POSTROUTING MASQUERADE | `10.1.1.0/24 → 0.0.0.0/0` |
+
+### CT105 — Nginx proxy
+
+```nginx
+server {
+    listen 8765;
+    auth_basic "SOC honeycos — Dashboard Honeypot";
+    auth_basic_user_file /etc/nginx/.htpasswd-dashboard;
+    location / {
+        proxy_pass http://10.1.1.69:80;
+    }
+}
+```
+
+---
+
+## 5. Flujo de datos
 
 ```
-                    ┌─────────────────────────────────────────┐
-                    │  VLAN50 — Honeypot (aislado)            │
-                    │                                         │
-                    │  VM203 · 10.1.1.130                     │
-                    │  ├── honeypot.service (6 servicios)     │
-                    │  ├── node_exporter :9100                │
-                    │  ├── wazuh-agent → VM202:1514           │
-                    │  └── agent.py → CT109:5000 (nueva regla)│
-                    └────────────────┬────────────────────────┘
-                                     │ HTTP POST (nueva regla OpenWRT)
-                    ┌────────────────▼────────────────────────┐
-                    │  VLAN20 — Servicios                     │
-                    │                                         │
-                    │  CT109 · 10.1.1.69                      │
-                    │  ├── dashboard-api.service (Flask :5000)│
-                    │  └── nginx :8765 → dashboard HTML       │
-                    └────────────────┬────────────────────────┘
-                                     │ proxy_pass (CT105 Nginx)
-                    ┌────────────────▼────────────────────────┐
-                    │  Acceso externo                         │
-                    │  http://192.168.3.200:8765/dashboard    │
-                    └─────────────────────────────────────────┘
+VM203 honeypot.log
+    └── agent.py (tail -f)
+            └── HTTP POST /events (cada evento nuevo)
+                    └── CT109 Flask API
+                            └── SQLite events.db
+                                    └── GET /stats · GET /events (cada 30s)
+                                            └── Dashboard HTML (navegador)
+                                                    └── http://192.168.3.200:8765
 ```
+
+**Latencia extremo a extremo:** ~1-3 segundos entre evento en el honeypot y aparición en el dashboard.
+
+---
+
+## 6. Acceso
+
+| URL | Descripción |
+|-----|-------------|
+| `http://192.168.3.200:8765` | Dashboard (Basic Auth — usuario: admin) |
+| `http://10.1.1.69/api/health` | Health check API (red interna) |
+| `http://10.1.1.69/api/stats` | Estadísticas (red interna) |
+| `http://10.1.1.69/api/events` | Eventos (red interna) |
+
+---
+
+## 7. Dashboard — Pestañas
+
+| Pestaña | Contenido | Fuente |
+|---------|-----------|--------|
+| Resumen | Métricas 24h, feed actividad, gráfico tráfico, top IPs, credenciales, servicios, rutas HTTP | API `/stats` + `/events` |
+| Eventos | Tabla interactiva con filtros (servicio, severidad, búsqueda), paginación, detalle expandible | API `/events?limit=200` |
+| IPs | Stats IPs únicas/países/brute force, tabla top IPs, barras por país, mapa D3 | API `/stats` (top_ips) |
+| Servicios | Cards por servicio (hits), timeline 12h, acciones, credenciales SSH, rutas HTTP, estado técnico | API `/stats` + `/events` |
+| Logs | Visor terminal en vivo (polling 3s), filtros nivel/servicio/búsqueda, distribución por nivel y servicio | API `/events` (incremental) |
+
+---
+
+## 8. Pendientes CT109
+
+| Tarea | Prioridad |
+|-------|-----------|
+| node_exporter (puerto 9100) | Media |
+| Wazuh Agent | Media |
+| DNS honeypot-dashboard.soc.local | Media |
+| Añadir target en Prometheus CT101 | Media |
+
+---
+
+*Dashboard honeypot completamente operativo — 2026-04-23*
