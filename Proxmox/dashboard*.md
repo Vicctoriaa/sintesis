@@ -176,6 +176,4 @@ VM203 honeypot.log
 | DNS honeypot-dashboard.soc.local | Media |
 | Añadir target en Prometheus CT101 | Media |
 
----
 
-*Dashboard honeypot completamente operativo — 2026-04-23*
