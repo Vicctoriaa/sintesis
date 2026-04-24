@@ -511,8 +511,3 @@ curl -v smtp://smtp.ionos.es:587
 | Extensiones institucionales | `.edu`, `.gov`, `.org`, `.gob.es` |
 
 ---
-
-## Créditos
-
-**Proyecto Final de Curso** — HoneyCos Security Services © 2026  
-Tecnologías utilizadas: Proxmox · LXC · Cloudflare Tunnel · Apache · PHP · MariaDB · PHPMailer · HTML5 · CSS3 · JavaScript
