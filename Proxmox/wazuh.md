@@ -268,12 +268,50 @@ systemctl start wazuh-agent
 | 100500 | 3 | Evento generico | No | No |
 | 100501 | 5 | Conexion detectada | No | No |
 | 100502 | 8 | Intento de login | No | No |
-| 100503 | 10 | Comando SSH ejecutado | No | collect-evidence.yml |
+| 100503 | 10 | Comando SSH ejecutado | **Si** | collect-evidence.yml |
 | 100504 | 5 | Request HTTP/HTTPS | No | No |
 | 100505 | 10 | Acceso a ruta sensible | No | No |
 | 100506 | 8 | Acceso a fichero | No | No |
 | 100507 | 14 | Brute force detectado | **Si** | block-ip.yml + collect-evidence.yml |
-| 100508 | 12 | Evento critico (ERROR) | No | block-ip.yml + isolate-host.yml + collect-evidence.yml |
+| 100508 | 12 | Evento critico (ERROR) | **Si** | block-ip.yml + isolate-host.yml + collect-evidence.yml |
+
+---
+
+### Suricata (100600-100601)
+
+**Fichero:** `/var/ossec/etc/rules/suricata_soc_rules.xml`
+
+Estas reglas extienden las reglas nativas de Wazuh para Suricata (86601) subiendo el nivel de alerta según la severidad del evento IDS, lo que permite disparar email para amenazas reales.
+
+```xml
+<!-- Reglas SOC honeycos — Suricata por severidad -->
+<group name="ids,suricata,soc,">
+
+  <!-- Severidad 1 (critica) — nivel 12 — dispara email -->
+  <rule id="100600" level="12">
+    <if_sid>86601</if_sid>
+    <field name="alert.severity">^1$</field>
+    <description>Suricata: alerta CRITICA (sev=1) - $(alert.signature)</description>
+    <group>suricata,high_severity,</group>
+  </rule>
+
+  <!-- Severidad 2 (alta) — nivel 10 -->
+  <rule id="100601" level="10">
+    <if_sid>86601</if_sid>
+    <field name="alert.severity">^2$</field>
+    <description>Suricata: alerta ALTA (sev=2) - $(alert.signature)</description>
+    <group>suricata,medium_severity,</group>
+  </rule>
+
+</group>
+```
+
+| ID | Nivel | Descripcion | Mail |
+|----|-------|-------------|------|
+| 100600 | 12 | Suricata alerta critica (sev=1) | **Si** |
+| 100601 | 10 | Suricata alerta alta (sev=2) | No |
+
+> La regla 100601 no dispara email porque el umbral esta en nivel 12, pero queda registrada en el dashboard y disponible para correlacion.
 
 ---
 
@@ -299,6 +337,39 @@ Directorio: `/var/ossec/etc/lists/malicious-ioc/`
 | smtp_server | 10.1.1.53 (CT108 Postfix) |
 | email_from | alertas-wazuh@soc.local |
 | email_to | telenecos9@gmail.com |
+| email_maxperhour | 12 |
+| email_alert_level | 12 |
+
+### Alertas por regla configuradas
+
+Bloque completo en `/var/ossec/etc/ossec.conf`:
+
+```xml
+<!-- Alertas especificas por regla -->
+<email_alerts>
+  <email_to>telenecos9@gmail.com</email_to>
+  <rule_id>100508</rule_id>
+</email_alerts>
+
+<email_alerts>
+  <email_to>telenecos9@gmail.com</email_to>
+  <rule_id>100503</rule_id>
+</email_alerts>
+
+<email_alerts>
+  <email_to>telenecos9@gmail.com</email_to>
+  <rule_id>100600</rule_id>
+</email_alerts>
+```
+
+### Resumen de alertas por email
+
+| Regla | Origen | Evento | Nivel | Email |
+|-------|--------|--------|-------|-------|
+| 100507 | Honeypot | Brute force | 14 | ✅ (nivel >= 12) |
+| 100508 | Honeypot | Evento critico | 12 | ✅ (nivel >= 12 + regla especifica) |
+| 100503 | Honeypot | Comando SSH ejecutado | 10 | ✅ (regla especifica) |
+| 100600 | Suricata | Alerta critica sev=1 | 12 | ✅ (nivel >= 12 + regla especifica) |
 
 ---
 
@@ -328,7 +399,7 @@ Wazuh manager (VM202)
 ```xml
 <!-- SOC honeycos — comando trigger -->
 <command>
-  <name>soc-trigger</name>
+  <n>soc-trigger</n>
   <executable>soc-trigger.sh</executable>
   <timeout_allowed>no</timeout_allowed>
 </command>
