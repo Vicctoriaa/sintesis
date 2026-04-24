@@ -1,0 +1,7 @@
+paramiko==4.0.0
+pyftpdlib==2.2.0
+impacket==0.13.0
+aiohttp==3.13.5
+python-json-logger==4.1.0
+cryptography==46.0.7
+pyyaml==6.0.3

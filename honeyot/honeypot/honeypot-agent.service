@@ -1,0 +1,19 @@
+[Unit]
+Description=Honeypot Agent — envia eventos al dashboard API
+After=network.target honeypot.service
+Requires=honeypot.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/honeypot
+ExecStart=/usr/bin/python3 /opt/honeypot/agent.py
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=honeypot-agent
+
+[Install]
+WantedBy=multi-user.target
