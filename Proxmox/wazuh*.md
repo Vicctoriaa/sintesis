@@ -1,6 +1,12 @@
 # Wazuh SIEM — SOC honeycos
 
+> Wazuh es el núcleo del SIEM del laboratorio. Corre en una VM dedicada (VM202) con tres componentes integrados: el indexer (base de datos OpenSearch donde se almacenan los eventos), el manager (recibe y procesa los logs de los agentes) y el dashboard (interfaz web de visualización y análisis). Los agentes instalados en cada CT envían sus logs al manager en tiempo real.
+
+---
+
 ## Arquitectura
+
+> El manager centraliza todos los eventos de seguridad del laboratorio. Cada CT tiene un agente Wazuh que recoge logs locales (syslog, auth.log, eve.json de Suricata, etc.) y los envía al manager por el puerto 1514. El indexer los almacena y el dashboard los hace consultables. El acceso externo al dashboard pasa por la regla PREROUTING del host Proxmox (sin pasar por Nginx).
 
 ```
 honeycos (Proxmox)
@@ -26,6 +32,8 @@ Agentes conectados:
 
 ## VM 202 — wazuh-siem
 
+> VM con recursos generosos comparada con los LXC del laboratorio. Wazuh (especialmente el indexer OpenSearch) es exigente en memoria y disco: 6 GB de RAM y 50 GB de disco son el mínimo recomendado para un entorno de laboratorio con varios agentes. Usa el DNS interno (CT103) para resolución de nombres.
+
 | Campo | Valor |
 |-------|-------|
 | VMID | 202 |
@@ -45,6 +53,8 @@ Agentes conectados:
 
 ### Requisitos previos
 
+> Actualización del sistema y `curl`, necesario para descargar el instalador oficial de Wazuh.
+
 ```bash
 apt update && apt upgrade -y
 apt install -y curl
@@ -52,12 +62,16 @@ apt install -y curl
 
 ### Descarga del instalador
 
+> Wazuh proporciona un script de instalación all-in-one que gestiona automáticamente la instalación y configuración de los tres componentes (indexer, manager, dashboard) y la generación de certificados TLS entre ellos.
+
 ```bash
 curl -sO https://packages.wazuh.com/4.11/wazuh-install.sh
 curl -sO https://packages.wazuh.com/4.11/config.yml
 ```
 
 ### Configuración del nodo (config.yml)
+
+> Define la topología del despliegue. Al ser una instalación all-in-one, los tres componentes (indexer, server/manager y dashboard) apuntan a la misma IP. En despliegues distribuidos cada componente iría en una IP diferente.
 
 ```yaml
 nodes:
@@ -74,11 +88,15 @@ nodes:
 
 ### Instalación all-in-one
 
+> El flag `-a` indica instalación all-in-one. El output se guarda en un log por si hay que revisar errores. El instalador genera certificados TLS, configura OpenSearch y deja todos los servicios activos al terminar.
+
 ```bash
 bash wazuh-install.sh -a 2>&1 | tee /root/wazuh-install.log
 ```
 
 ### Actualización a 4.14.4
+
+> Actualización de los paquetes manteniendo la configuración existente. Al responder `N` a las preguntas de configuración se conservan los ficheros actuales (`ossec.conf`, reglas personalizadas, etc.) sin sobrescribirlos con los valores por defecto del paquete nuevo.
 
 ```bash
 apt update
@@ -89,6 +107,8 @@ apt install -y wazuh-manager wazuh-indexer wazuh-dashboard
 ---
 
 ## Servicios
+
+> Los cuatro servicios deben estar activos simultáneamente para que Wazuh funcione correctamente. Si el indexer cae, el manager no puede almacenar eventos aunque los siga recibiendo. Filebeat es el encargado de transportar los logs procesados por el manager hacia el indexer.
 
 | Servicio | Puerto | Descripción |
 |---------|--------|-------------|
@@ -107,6 +127,8 @@ systemctl status wazuh-manager wazuh-indexer wazuh-dashboard filebeat --no-pager
 ## Configuración del dashboard
 
 ### Fichero principal
+
+> Configuración del dashboard Wazuh (basado en OpenSearch Dashboards). Escucha en todas las interfaces (`0.0.0.0`) en el puerto 443 con TLS habilitado, usando los certificados generados durante la instalación. `multitenancy` deshabilitado simplifica la gestión en un entorno de laboratorio con un único usuario.
 
 `/etc/wazuh-dashboard/opensearch_dashboards.yml`
 
@@ -129,6 +151,8 @@ opensearch_security.cookie.secure: true
 
 ## Gestión de contraseñas
 
+> Wazuh incluye una herramienta propia para cambiar contraseñas de los usuarios del indexer (OpenSearch). No se deben cambiar directamente en la base de datos; hay que usar este script para que también actualice las referencias en los ficheros de configuración de los otros componentes.
+
 ```bash
 # Cambiar contraseña de un usuario específico
 bash /usr/share/wazuh-indexer/plugins/opensearch-security/tools/wazuh-passwords-tool.sh \
@@ -142,6 +166,8 @@ bash /usr/share/wazuh-indexer/plugins/opensearch-security/tools/wazuh-passwords-
 
 ## Exposición del dashboard al exterior
 
+> Reglas iptables en el host Proxmox que redirigen el tráfico HTTPS externo directamente a Wazuh, sin pasar por el Nginx del CT105. Wazuh gestiona su propio TLS, por lo que un proxy adicional complicaría la cadena de certificados. `MASQUERADE` es necesario para que el tráfico de retorno funcione correctamente.
+
 ```bash
 iptables -t nat -A PREROUTING -i vmbr0 -p tcp --dport 443 -j DNAT --to-destination 10.1.1.67:443
 iptables -t nat -A OUTPUT -p tcp -d 192.168.3.200 --dport 443 -j DNAT --to-destination 10.1.1.67:443
@@ -152,6 +178,8 @@ netfilter-persistent save
 ---
 
 ## Instalación de agentes
+
+> Proceso estándar para añadir un nuevo CT al SIEM. Las variables de entorno `WAZUH_MANAGER` y `WAZUH_AGENT_NAME` preconfiguran el agente durante la instalación, evitando editar `ossec.conf` manualmente. El agente contacta al manager por el puerto 1515 para el enrollment inicial y luego usa el 1514 para el envío continuo de eventos.
 
 ```bash
 # Añadir repositorio
@@ -176,6 +204,8 @@ systemctl start wazuh-agent
 
 ## Agentes desplegados
 
+> Estado actual de todos los agentes Wazuh en el laboratorio. Todos están en estado `active`, lo que significa que están enviando heartbeats y eventos al manager. El agente del Honeypot (007) fue el último en añadirse.
+
 | ID | Nombre | IP | VLAN | OS | Estado |
 |----|--------|-----|------|----|--------|
 | 001 | soar-web | 10.1.1.37 | 20 | Debian 11 | active |
@@ -191,6 +221,8 @@ systemctl start wazuh-agent
 ## Reglas personalizadas
 
 ### Honeypot (100500-100508)
+
+> Las reglas de Wazuh definen cómo clasificar y priorizar los eventos. El nivel determina la gravedad (1-15) y si se envía alerta por correo (por defecto a partir de nivel 12 o si está explícitamente configurado). Estas reglas están en el rango 100000+ reservado para reglas personalizadas de usuario, evitando conflictos con las reglas built-in de Wazuh. La regla base (100500) detecta cualquier evento del honeypot; el resto hereda de ella usando `if_sid`.
 
 **Fichero:** `/var/ossec/etc/rules/honeypot_rules.xml`
 
@@ -263,25 +295,29 @@ systemctl start wazuh-agent
 </group>
 ```
 
+> Resumen de niveles y comportamiento de alertas. Solo el brute force (nivel 14) genera notificación por correo, ya que es el evento más crítico y accionable del honeypot.
+
 | ID | Nivel | Descripcion | Mail |
 |----|-------|-------------|------|
-| 100500 | 3 | Evento generico | No |
-| 100501 | 5 | Conexion detectada | No |
+| 100500 | 3 | Evento genérico | No |
+| 100501 | 5 | Conexión detectada | No |
 | 100502 | 8 | Intento de login | No |
 | 100503 | 10 | Comando SSH ejecutado | No |
 | 100504 | 5 | Request HTTP/HTTPS | No |
 | 100505 | 10 | Acceso a ruta sensible | No |
 | 100506 | 8 | Acceso a fichero | No |
-| 100507 | 14 | Brute force detectado | **Si** |
-| 100508 | 12 | Evento critico (ERROR) | No |
+| 100507 | 14 | Brute force detectado | **Sí** |
+| 100508 | 12 | Evento crítico (ERROR) | No |
 
 ---
 
 ## Listas CDB
 
+> Las listas CDB (Constant Database) permiten a Wazuh hacer lookups rápidos contra conjuntos de IOCs (Indicators of Compromise): hashes de malware, IPs maliciosas y dominios. Cuando un evento contiene un valor que aparece en estas listas, Wazuh puede aplicar reglas específicas para generar alertas de alta severidad. Actualmente son placeholders pendientes de poblar con IOCs reales.
+
 Directorio: `/var/ossec/etc/lists/malicious-ioc/`
 
-| Fichero | Descripcion |
+| Fichero | Descripción |
 |---------|-------------|
 | malware-hashes | Hashes de malware conocido |
 | malicious-ip | IPs maliciosas conocidas |
@@ -292,6 +328,8 @@ Directorio: `/var/ossec/etc/lists/malicious-ioc/`
 ---
 
 ## Configuración email (ossec.conf)
+
+> Wazuh envía alertas por correo usando CT108 como relay SMTP. El parámetro `email_notification: yes` activa el sistema de alertas. Por defecto, Wazuh envía correo para eventos a partir del nivel 12 (configurable con `email_alert_level`). El `email_from` no necesita ser una dirección real, solo es el remitente que aparecerá en el correo.
 
 | Parámetro | Valor |
 |-----------|-------|
@@ -304,6 +342,8 @@ Directorio: `/var/ossec/etc/lists/malicious-ioc/`
 
 ## Registro DNS
 
+> Wazuh tiene su propio registro A en el DNS interno, lo que permite acceder al dashboard usando `https://wazuh.soc.local` desde cualquier CT del laboratorio en lugar de tener que recordar la IP.
+
 ```
 wazuh    IN  A   10.1.1.67
 ```
@@ -313,6 +353,8 @@ Acceso interno: `https://wazuh.soc.local`
 ---
 
 ## Comandos útiles
+
+> Referencia rápida para las operaciones más habituales. `wazuh-logtest` es especialmente útil durante el desarrollo de reglas: permite enviar una línea de log de prueba y ver qué reglas y decoders la procesan, sin necesidad de generar el evento real. `wazuh-analysisd -t` valida la sintaxis de todas las reglas antes de reiniciar el manager.
 
 ```bash
 # Ver agentes conectados
