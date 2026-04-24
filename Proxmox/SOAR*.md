@@ -512,26 +512,6 @@ curl -v smtp://smtp.ionos.es:587
 
 ---
 
-## 12. Posibles mejoras futuras
-
-- [ ] Añadir HTTPS propio con certificado Let's Encrypt (aunque Cloudflare ya cifra el tramo exterior).
-- [ ] Implementar rate limiting en los formularios PHP para evitar spam.
-- [ ] Tarea cron para limpiar `verificaciones_pendientes` expiradas automáticamente.
-- [ ] Panel de administración para visualizar los contactos recibidos.
-- [ ] Suscripción con doble opt-in (confirmar email antes de añadir a la lista).
-- [ ] Logs de acceso centralizados con Fail2Ban para detectar ataques de fuerza bruta al OTP.
-
-```bash
-# Ejemplo de cron para limpiar verificaciones expiradas cada 30 minutos
-crontab -e
-
-# Añadir:
-*/30 * * * * mysql -u honeycos_user -pHoneyPass2026! honeycos_db \
-  -e "DELETE FROM verificaciones_pendientes WHERE expira < NOW();" 2>/dev/null
-```
-
----
-
 ## Créditos
 
 **Proyecto Final de Curso** — HoneyCos Security Services © 2026  
