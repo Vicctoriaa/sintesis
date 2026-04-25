@@ -37,15 +37,17 @@
 
 ```ini
 [soc]
-grafana-prometheus  ansible_host=10.1.1.66
-wazuh-siem          ansible_host=10.1.1.67
-homepage            ansible_host=10.1.1.68
+grafana-prometheus  ansible_host=10.1.1.66  ansible_port=2222
+wazuh-siem          ansible_host=10.1.1.67  ansible_port=2222
+homepage            ansible_host=10.1.1.68  ansible_port=2222
+honeypot-dashboard  ansible_host=10.1.1.69  ansible_port=2222
 
 [servicios]
 playbooks-dns       ansible_host=10.1.1.34  ansible_connection=local
 nginx-proxy         ansible_host=10.1.1.35  ansible_port=2222
 suricata-ids        ansible_host=10.1.1.36  ansible_port=2222
 soar-web            ansible_host=10.1.1.37  ansible_port=2222
+correo              ansible_host=10.1.1.53  ansible_port=2222
 vaultwarden         ansible_host=10.1.1.80  ansible_port=2222
 
 [produccion]
@@ -53,6 +55,9 @@ ldap                ansible_host=10.1.1.98  ansible_port=2222
 
 [firewall]
 openwrt-fw          ansible_host=10.1.1.1  ansible_python_interpreter=/bin/false  ansible_shell_type=sh
+
+[honey]
+honeypot  ansible_host=10.1.1.130  ansible_port=2222
 
 [linux:children]
 soc
