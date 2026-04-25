@@ -11,13 +11,14 @@ honeycos (Proxmox)
     └── filebeat
 
 Agentes conectados:
-├── CT100 — LDAP          (10.1.1.98  / VLAN40)
-├── CT101 — Grafana       (10.1.1.66  / VLAN30)
-├── CT103 — DNS           (10.1.1.34  / VLAN20)  ← ejecutor Ansible
-├── CT104 — SOAR          (10.1.1.37  / VLAN20)
-├── CT105 — Nginx         (10.1.1.35  / VLAN20)
-├── CT106 — Suricata      (10.1.1.36  / VLAN20)
-└── VM203 — Honeypot      (10.1.1.130 / VLAN50)
+├── CT100 — LDAP               (10.1.1.98  / VLAN40)
+├── CT101 — Grafana            (10.1.1.66  / VLAN30)
+├── CT103 — DNS                (10.1.1.34  / VLAN20)  ← ejecutor Ansible
+├── CT104 — SOAR               (10.1.1.37  / VLAN20)
+├── CT105 — Nginx              (10.1.1.35  / VLAN20)
+├── CT106 — Suricata           (10.1.1.36  / VLAN20)
+├── CT109 — honeypot-dashboard (10.1.1.69  / VLAN30)
+└── VM203 — Honeypot           (10.1.1.130 / VLAN50)
 ```
 
 **Acceso al dashboard:** `https://192.168.3.200` (via PREROUTING → 10.1.1.67:443)
@@ -184,7 +185,8 @@ systemctl start wazuh-agent
 | 004 | grafana-prometheus | 10.1.1.66 | 30 | Debian 11 | active |
 | 005 | playbooks-dns | 10.1.1.34 | 20 | Debian 11 | active ← ejecutor Ansible |
 | 006 | ldap | 10.1.1.98 | 40 | Ubuntu 22.04 | active |
-| 007 | honeypot | 10.1.1.130 | 50 | Debian 12 | active ✅ |
+| 007 | honeypot | 10.1.1.130 | 50 | Debian 12 | active |
+| 008 | honeypot-dashboard | 10.1.1.69 | 30 | Debian 12 | active |
 
 ---
 
@@ -366,10 +368,10 @@ Bloque completo en `/var/ossec/etc/ossec.conf`:
 
 | Regla | Origen | Evento | Nivel | Email |
 |-------|--------|--------|-------|-------|
-| 100507 | Honeypot | Brute force | 14 | ✅ (nivel >= 12) |
-| 100508 | Honeypot | Evento critico | 12 | ✅ (nivel >= 12 + regla especifica) |
-| 100503 | Honeypot | Comando SSH ejecutado | 10 | ✅ (regla especifica) |
-| 100600 | Suricata | Alerta critica sev=1 | 12 | ✅ (nivel >= 12 + regla especifica) |
+| 100507 | Honeypot | Brute force | 14 | (nivel >= 12) |
+| 100508 | Honeypot | Evento critico | 12 | (nivel >= 12 + regla especifica) |
+| 100503 | Honeypot | Comando SSH ejecutado | 10 | (regla especifica) |
+| 100600 | Suricata | Alerta critica sev=1 | 12 | (nivel >= 12 + regla especifica) |
 
 ---
 
