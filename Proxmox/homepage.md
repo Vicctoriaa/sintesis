@@ -166,6 +166,10 @@ layout:
         href: http://192.168.3.200:3000
         description: Dashboards y métricas
         icon: grafana.png
+    - Honeypot Dashboard:
+        href: http://192.168.3.200:8765
+        description: Dashboard honeypot
+        icon: https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/cowrie.png
 
 - Servicios:
     - SOAR:
