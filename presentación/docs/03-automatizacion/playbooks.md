@@ -385,7 +385,7 @@ ansible-playbook -i /etc/ansible/inventories/soc.ini \
 
 ---
 
-## CATEGORÍA 3 — Respuesta a Incidentes
+## CATEGORÍA 3 — Seguridad
 
 ### 3.1 `usuarios.yml` — Gestión centralizada de usuarios
 
