@@ -256,8 +256,6 @@ El servicio detecta tanto SMB1 (`\xffSMB`) como SMB2/3 (`\xfeSMB`) por el magic 
 | Credential stuffing | `credential_stuffing` | Misma contraseña contra ≥5 usuarios distintos en 60s | SSH, FTP, HTTP, HTTPS, SMB |
 | Decoy file access | `decoy_file_access` | Acceso a fichero señuelo de alta prioridad | FTP, SMB, HTTP, HTTPS |
 
-> **Nota:** El detector de credential stuffing requiere que el servicio pase la contraseña al método `record()`. SSH, FTP y HTTP/HTTPS lo hacen desde v4. SMB no transmite contraseñas en claro en el handshake NTLM — en su lugar se pasa el username extraído del token NTLM.
-
 Umbrales configurables en `config.yaml`:
 
 ```yaml
