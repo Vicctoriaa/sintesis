@@ -236,15 +236,20 @@ CREATE TABLE suscriptores (
 ```
 /var/www/html/
 │
-├── index.html              # Página principal (hero, servicios, tecnología, formulario)
-├── style.css               # Estilos globales con modo claro/oscuro
-├── script.js               # Validaciones JS del formulario
+├── index.html
+├── verificar.php
+├── style.css
+├── script.js
 │
-├── contacto.php            # Recibe formulario → genera OTP → envía email → redirige
-├── verificar.php           # Página para introducir el código OTP
-├── procesar_final.php      # Valida OTP → inserta en contactos → muestra éxito
+├── api/
+│   ├── contacto.php
+│   ├── procesar_final.php
+│   ├── suscripcion.php        
+│   └── verificar_sub.php      
 │
-├── suscripcion.php         # Gestiona suscripción al newsletter
+├── config/
+│   ├── db.php 
+│   └── mail.php
 │
 └── phpmailer/
     ├── PHPMailer.php
