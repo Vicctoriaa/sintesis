@@ -341,46 +341,6 @@ ansible-playbook -i /etc/ansible/inventories/soc.ini \
 
 ---
 
-### 1.4 `usuarios.yml` — Gestión centralizada de usuarios
-
-**Qué hace:** Crea, elimina o cambia la contraseña de usuarios en uno, varios o todos los nodos del SOC. Registra todas las operaciones en el log de incidentes.
-
-> NOTA: Este playbook es exclusivamente manual. No está automatizado.
-
-**Variables:**
-
-| Variable | Valores | Descripción |
-|----------|---------|-------------|
-| `action` | `create`, `delete`, `change_password` | Operación a realizar |
-| `username` | nombre del usuario | Usuario sobre el que operar |
-| `password` | contraseña | Requerido para `create` y `change_password` |
-| `target_hosts` | `linux`, nombre nodo, `nodo1,nodo2` | Hosts donde aplicar (default: `linux`) |
-
-**Ejecución:**
-```bash
-# Crear usuario en todos los nodos
-ansible-playbook -i /etc/ansible/inventories/soc.ini \
-  /etc/ansible/playbooks/mantenimiento/usuarios.yml \
-  -e action=create -e username=operador1 -e password=MiPassword123
-
-# Crear usuario en un nodo específico
-ansible-playbook -i /etc/ansible/inventories/soc.ini \
-  /etc/ansible/playbooks/mantenimiento/usuarios.yml \
-  -e target_hosts=soar-web -e action=create -e username=operador1 -e password=MiPassword123
-
-# Eliminar usuario
-ansible-playbook -i /etc/ansible/inventories/soc.ini \
-  /etc/ansible/playbooks/mantenimiento/usuarios.yml \
-  -e action=delete -e username=operador1
-
-# Cambiar contraseña
-ansible-playbook -i /etc/ansible/inventories/soc.ini \
-  /etc/ansible/playbooks/mantenimiento/usuarios.yml \
-  -e action=change_password -e username=operador1 -e password=NuevaPassword123
-```
-
----
-
 ## CATEGORÍA 2 — Backup
 
 ### 2.1 `backup-configs.yml` — Backup de configuraciones críticas
@@ -427,7 +387,49 @@ ansible-playbook -i /etc/ansible/inventories/soc.ini \
 
 ## CATEGORÍA 3 — Respuesta a Incidentes
 
-### 3.1 `isolate-host.yml` — Aislamiento de VLAN
+### 3.1 `usuarios.yml` — Gestión centralizada de usuarios
+
+**Qué hace:** Crea, elimina o cambia la contraseña de usuarios en uno, varios o todos los nodos del SOC. Registra todas las operaciones en el log de incidentes.
+
+> NOTA: Este playbook es exclusivamente manual. No está automatizado.
+
+**Variables:**
+
+| Variable | Valores | Descripción |
+|----------|---------|-------------|
+| `action` | `create`, `delete`, `change_password` | Operación a realizar |
+| `username` | nombre del usuario | Usuario sobre el que operar |
+| `password` | contraseña | Requerido para `create` y `change_password` |
+| `target_hosts` | `linux`, nombre nodo, `nodo1,nodo2` | Hosts donde aplicar (default: `linux`) |
+
+**Ejecución:**
+```bash
+# Crear usuario en todos los nodos
+ansible-playbook -i /etc/ansible/inventories/soc.ini \
+  /etc/ansible/playbooks/mantenimiento/usuarios.yml \
+  -e action=create -e username=operador1 -e password=MiPassword123
+
+# Crear usuario en un nodo específico
+ansible-playbook -i /etc/ansible/inventories/soc.ini \
+  /etc/ansible/playbooks/mantenimiento/usuarios.yml \
+  -e target_hosts=soar-web -e action=create -e username=operador1 -e password=MiPassword123
+
+# Eliminar usuario
+ansible-playbook -i /etc/ansible/inventories/soc.ini \
+  /etc/ansible/playbooks/mantenimiento/usuarios.yml \
+  -e action=delete -e username=operador1
+
+# Cambiar contraseña
+ansible-playbook -i /etc/ansible/inventories/soc.ini \
+  /etc/ansible/playbooks/mantenimiento/usuarios.yml \
+  -e action=change_password -e username=operador1 -e password=NuevaPassword123
+```
+
+---
+
+## CATEGORÍA 4 — Respuesta a Incidentes
+
+### 4.1 `isolate-host.yml` — Aislamiento de VLAN
 
 **Qué hace:** Ante un incidente, añade una regla REJECT en OpenWRT para bloquear todo el tráfico de una VLAN. Registra el aislamiento en el log de incidentes.
 
@@ -488,7 +490,7 @@ ansible-playbook -i /etc/ansible/inventories/soc.ini \
 
 ---
 
-### 3.2 `unisolate-host.yml` — Desaislamiento de VLAN
+### 4.2 `unisolate-host.yml` — Desaislamiento de VLAN
 
 **Qué hace:** Elimina la regla REJECT creada por `isolate-host.yml` para restaurar la conectividad de una VLAN tras resolver el incidente.
 
@@ -503,7 +505,7 @@ ansible-playbook -i /etc/ansible/inventories/soc.ini \
 
 ---
 
-### 3.3 `collect-evidence.yml` — Recolección de evidencias forenses
+### 4.3 `collect-evidence.yml` — Recolección de evidencias forenses
 
 **Qué hace:** Recoge evidencias forenses de un nodo comprometido: procesos, conexiones, usuarios, logs, crontabs, rutas, servicios activos. Genera hashes SHA256 para cadena de custodia y envía todo a honeycos-bk.
 
@@ -537,7 +539,7 @@ ansible-playbook -i /etc/ansible/inventories/soc.ini \
 
 ---
 
-### 3.4 `block-ip.yml` — Bloqueo de IP maliciosa en Suricata
+### 4.4 `block-ip.yml` — Bloqueo de IP maliciosa en Suricata
 
 **Qué hace:** Añade una regla `drop` en Suricata para bloquear una IP maliciosa, recarga las reglas en caliente y registra el bloqueo en el log de incidentes.
 
