@@ -132,25 +132,15 @@ uci commit dhcp && service dnsmasq restart
 
 ### Reglas SOC honeycos
 
-| # | Nombre | Src | Src IP | Dest IP | Puertos | Acción |
-|---|--------|-----|--------|---------|---------|--------|
-| 9 | Allow-Proxmox-Monitoring | wan | `192.168.3.0/24` | * | 22 2222 53 80 443 587 1514 1515 3000 8080 8091 8443 8765 8888 9090 9100 9119 9917 | ACCEPT |
-| 10 | allow-mgmt-honeypot | wan | `192.168.3.200` | `10.1.1.130` | 2222 | ACCEPT |
-| 11 | honeypot-to-wazuh | vlan50 | — | `10.1.1.67` | 1514 1515 | ACCEPT |
-| 12 | prometheus-to-honeypot | vlan30 | — | `10.1.1.130` | 9100 | ACCEPT |
-| 13 | honeycos-to-postfix | wan | `192.168.3.200` | `10.1.1.53` | 25 | ACCEPT |
-| 14 | honeycos-bk-to-postfix | wan | `192.168.3.111` | `10.1.1.53` | 25 | ACCEPT |
-| 15 | honeypot-to-dashboard-api | vlan50 | — | `10.1.1.69` | 5000 | ACCEPT |
-
-| Regla | Propósito |
-|-------|-----------|
-| 9 | Acceso desde red de gestión a todos los puertos de servicios del SOC |
-| 10 | SSH de gestión desde honeycos al honeypot (puerto real 2222) |
-| 11 | Agente Wazuh del honeypot comunica con el manager VM202 |
-| 12 | Prometheus CT101 scrapea node_exporter del honeypot |
-| 13 | honeycos envía correo a través de Postfix CT108 |
-| 14 | honeycos-bk envía correo a través de Postfix CT108 |
-| 15 | Honeypot envía eventos HTTP POST a la API Flask en CT109 (:5000) |
+| # | Nombre | Src | Src IP | Dest IP | Puertos | Acción | Propósito |
+|---|--------|-----|--------|---------|---------|--------|-----------|
+| 9 | Allow-Proxmox-Monitoring | wan | `192.168.3.0/24` | * | 22 2222 53 80 443 587 1514 1515 3000 8080 8091 8443 8765 8888 9090 9100 9119 9917 | ACCEPT | Acceso desde red de gestión a todos los puertos de servicios del SOC |
+| 10 | allow-mgmt-honeypot | wan | `192.168.3.200` | `10.1.1.130` | 2222 | ACCEPT | SSH de gestión desde honeycos al honeypot (puerto real 2222) |
+| 11 | honeypot-to-wazuh | vlan50 | — | `10.1.1.67` | 1514 1515 | ACCEPT | Agente Wazuh del honeypot comunica con el manager VM202 |
+| 12 | prometheus-to-honeypot | vlan30 | — | `10.1.1.130` | 9100 | ACCEPT | Prometheus CT101 scrapea node_exporter del honeypot |
+| 13 | honeycos-to-postfix | wan | `192.168.3.200` | `10.1.1.53` | 25 | ACCEPT | honeycos envía correo a través de Postfix CT108 |
+| 14 | honeycos-bk-to-postfix | wan | `192.168.3.111` | `10.1.1.53` | 25 | ACCEPT | honeycos-bk envía correo a través de Postfix CT108 |
+| 15 | honeypot-to-dashboard-api | vlan50 | — | `10.1.1.69` | 5000 | ACCEPT | Honeypot envía eventos HTTP POST a la API Flask en CT109 (:5000) |
 
 ### Aplicar cambios
 
