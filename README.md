@@ -11,7 +11,7 @@
 1. [Resumen](#1-resumen)
 2. [Introducción](#2-introducción)
 3. [Objetivos](#3-objetivos)
-4. [Marco teórico](#4-marco-teorico)
+4. [Marco teórico](#4-marco-teórico)
 5. [Análisis de requisitos](#5-análisis-de-requisitos)
 6. [Diseño de la arquitectura](#6-diseño-de-la-arquitectura)
 7. [Implementación](#7-implementación)
