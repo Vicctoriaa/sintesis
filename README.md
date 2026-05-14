@@ -28,8 +28,7 @@
    - 7.11 [Sistema de backups](#711-sistema-de-backups)
 8. [Conclusiones](#8-conclusiones)
 9. [Trabajo futuro](#9-trabajo-futuro)
-10. [Bibliografía](#10-bibliografía)
-11. [Anexos](#11-anexos)
+10. [Anexos](#10-anexos)
 
 ---
 
@@ -567,27 +566,7 @@ Las siguientes líneas de mejora han sido identificadas durante el desarrollo de
 
 ---
 
-## 10. Bibliografía
-
-- Proxmox VE. *Proxmox Virtual Environment Documentation*. https://pve.proxmox.com/pve-docs/
-- Wazuh. *Wazuh Documentation*. https://documentation.wazuh.com/
-- Suricata. *Suricata User Guide*. https://docs.suricata.io/
-- Grafana Labs. *Grafana Documentation*. https://grafana.com/docs/
-- Prometheus. *Prometheus Documentation*. https://prometheus.io/docs/
-- Red Hat. *Ansible Documentation*. https://docs.ansible.com/
-- OpenWRT. *OpenWRT Documentation*. https://openwrt.org/docs/
-- Cloudflare. *Cloudflare Tunnel Documentation*. https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/
-- Paramiko. *Paramiko Documentation*. https://www.paramiko.org/
-- Impacket. *Impacket GitHub Repository*. https://github.com/fortra/impacket
-- MITRE. *MITRE ATT&CK Framework*. https://attack.mitre.org/
-- NIST. *NIST Cybersecurity Framework*. https://www.nist.gov/cyberframework
-- PHPMailer. *PHPMailer Documentation*. https://github.com/PHPMailer/PHPMailer
-- Bind9. *BIND 9 Administrator Reference Manual*. https://bind9.readthedocs.io/
-- OpenLDAP. *OpenLDAP Software Administrator's Guide*. https://www.openldap.org/doc/admin26/
-
----
-
-## 11. Anexos
+## 10. Anexos
 
 ### Anexo A — Inventario completo de nodos
 
