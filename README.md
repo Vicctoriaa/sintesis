@@ -378,7 +378,7 @@ Suricata se desplegó en CT106, contenedor privilegiado con 2 cores y 1 GB de RA
 
 Suricata opera en modo IDS pasivo, analizando el tráfico que atraviesa la interfaz de red del contenedor y escribiendo los eventos en formato JSON en el fichero `eve.json`. Este fichero es el punto de integración con el resto del stack: el agente Wazuh lo monitoriza y reenvía los eventos al manager, y el proceso `eve-watcher.py` lo observa en tiempo real para disparar respuestas automáticas ante alertas de alta gravedad.
 
-**eve-watcher.py.** Este proceso Python desarrollado para el proyecto monitoriza `eve.json` en tiempo real (equivalente a un `tail -f`) y aplica una lógica de clasificación sobre cada alerta recibida. Según la combinación de severidad de la alerta, firma detectada y origen de la IP (externa vs. interna), decide qué playbook Ansible ejecutar en CT103 via SSH. Un mecanismo de cooldown de 5 minutos por IP evita la ejecución repetida del mismo playbook ante floods de alertas sobre la misma fuente.
+**eve-watcher.py.** Este proceso Python desarrollado para el proyecto monitoriza `eve.json` en tiempo real (equivalente a un `tail -f`) y aplica una lógica de clasificación sobre cada alerta recibida. Según la combinación de severidad de la alerta, firma detectada y origen de la IP (externa vs. interna), decide qué playbook Ansible ejecutar en CT103 via SSH. Un mecanismo de cooldown de 5 minutos por IP evita la ejecución repetida del mismo playbook.
 
 Las IPs bloqueadas por el SOC se añaden automáticamente como reglas `drop` en el fichero `local.rules` de Suricata, que puede recargarse en caliente sin reiniciar el motor mediante `suricatasc -c reload-rules`.
 
@@ -388,7 +388,7 @@ El `suricata_exporter` instalado en CT106 expone métricas del IDS en el puerto 
 
 El stack de monitorización se concentra en CT101, que aloja Prometheus como servicio systemd y Grafana en Docker, compartiendo la misma IP `10.1.1.66`.
 
-**Prometheus** recolecta métricas de once nodos del entorno mediante el job `node_exporter` (que cubre todos los CTs y VMs), un job `bind_exporter` para el servidor DNS y un job `suricata_exporter` para el IDS. Con un intervalo de scraping de 15 segundos, Prometheus almacena el estado histórico de toda la infraestructura, permitiendo identificar tendencias de consumo de recursos, detectar anomalías y correlacionar eventos de seguridad con el comportamiento del sistema.
+**Prometheus** recolecta métricas de once nodos del entorno mediante el job `node_exporter` (que cubre todos los CTs y VMs), un job `bind_exporter` para el servidor DNS y un job `suricata_exporter` para el IDS. Con un intervalo de 15 segundos, Prometheus almacena el estado histórico de toda la infraestructura, permitiendo identificar tendencias de consumo de recursos, detectar anomalías y correlacionar eventos de seguridad con el comportamiento del sistema.
 
 La decisión de ejecutar Prometheus como binario systemd en lugar de en Docker se tomó para garantizar una mayor estabilidad ante reinicios y evitar la dependencia del daemon Docker para el componente más crítico del stack de monitorización. Grafana, al ser más tolerante a reinicios y beneficiarse de la gestión de imágenes Docker, sí se despliega en contenedor.
 
