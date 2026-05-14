@@ -324,8 +324,6 @@ Suricata — CT106
 
 Proxmox VE se instaló sobre el nodo físico `honeycos` como sistema operativo principal. La instalación se realizó desde imagen ISO oficial, configurando el almacenamiento en dos pools ZFS diferenciados: `local` para las imágenes de backup generadas por vzdump, y `local-zfs` como pool ZFS nativo donde residen los discos de todos los contenedores y máquinas virtuales.
 
-El almacenamiento ZFS opera en modo mirror (RAID-1 software) sobre dos discos de 500 GB, con un tamaño de pool disponible de 460 GB y una ocupación del 30% al final del proyecto. El último scrub realizado no reportó errores, confirmando la integridad de los datos.
-
 **Red en Proxmox.** Se configuraron dos bridges:
 - `vmbr0` como bridge estándar conectado a la interfaz física, asignándole la IP de gestión `192.168.3.200/24`. Por él entra y sale el tráfico hacia Internet y la red doméstica.
 - `vmbr1` como bridge VLAN-aware sin IP asignada y sin puertos físicos. Actúa como trunk virtual que transporta el tráfico etiquetado de las cinco VLANs hacia OpenWRT y entre los contenedores.
