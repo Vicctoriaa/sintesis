@@ -1,8 +1,6 @@
 # Memoria Final
 
-**Autores:** Juan Victoria Víctor  
-**Curso:** 2025–2026  
-**Fecha:** Mayo 2026  
+**Autores:** Juan · Victoria · Víctor  
 
 ---
 
@@ -504,51 +502,21 @@ Tras el vzdump, el script ejecuta un rsync hacia el servidor de backup dedicado 
 
 El proyecto ha cumplido con todos sus objetivos principales, logrando construir un entorno SOC completamente funcional sobre hardware convencional y herramientas de código abierto. Las conclusiones más relevantes se organizan en torno a los cuatro pilares del proyecto:
 
-**Arquitectura y virtualización.** Proxmox VE ha demostrado ser una plataforma sólida y flexible para este tipo de laboratorios. La combinación de LXC para servicios ligeros y KVM para los componentes que requieren aislamiento completo de kernel (honeypot, firewall, SIEM) permite optimizar el uso de recursos sin sacrificar seguridad ni funcionalidad. El almacenamiento ZFS en mirror ha aportado integridad de datos y facilidad de gestión sin coste adicional.
+**Arquitectura y virtualización:** Proxmox VE ha demostrado ser una plataforma sólida y flexible para este tipo de laboratorios. La combinación de LXC para servicios ligeros y KVM para los componentes que requieren aislamiento completo de kernel (honeypot, firewall, SIEM) permite optimizar el uso de recursos sin sacrificar seguridad ni funcionalidad. El almacenamiento ZFS en mirror ha aportado integridad de datos y facilidad de gestión sin coste adicional.
 
-**Detección y correlación.** La integración de Wazuh con Suricata, el honeypot y los agentes en todos los nodos proporciona una visibilidad completa del entorno. Las reglas personalizadas desarrolladas demuestran que es posible adaptar un SIEM de código abierto a las necesidades específicas de cualquier entorno sin necesidad de soluciones comerciales. El mecanismo de Active Response de Wazuh, integrado con Ansible, cierra el ciclo de detección-respuesta de forma automática.
+**Detección y correlación:** La integración de Wazuh con Suricata, el honeypot y los agentes en todos los nodos proporciona una visibilidad completa del entorno. Las reglas personalizadas desarrolladas demuestran que es posible adaptar un SIEM de código abierto a las necesidades específicas de cualquier entorno sin necesidad de soluciones comerciales. El mecanismo de Active Response de Wazuh, integrado con Ansible, cierra el ciclo de detección-respuesta de forma automática.
 
-**Automatización.** Los playbooks Ansible desarrollados cubren los escenarios de respuesta más habituales en un SOC real: bloqueo de IPs, aislamiento de hosts comprometidos, recolección de evidencias y actualización de sistemas. La arquitectura de ejecución centralizada en CT103 simplifica el modelo de comunicación y proporciona un log de incidentes auditable.
+**Automatización:** Los playbooks Ansible desarrollados cubren los escenarios de respuesta más habituales en un SOC real: bloqueo de IPs, aislamiento de hosts comprometidos, recolección de evidencias y actualización de sistemas. La arquitectura de ejecución centralizada en CT103 simplifica el modelo de comunicación y proporciona un log de incidentes auditable.
 
-**Honeypot.** El honeypot propio es el componente más diferencial del proyecto. Desarrollarlo en Python ha requerido un conocimiento profundo de los protocolos implementados y ha permitido adaptarlo exactamente a las necesidades del entorno (logging estructurado para Wazuh, API para el dashboard, etc.). La exposición parcial a Internet a través de `honeycos.com` ha permitido capturar actividad real de atacantes automatizados, lo que ha validado el funcionamiento del stack completo en condiciones reales.
+**Honeypot:** El honeypot propio es el componente más diferencial del proyecto. Desarrollarlo en Python ha requerido un conocimiento profundo de los protocolos implementados y ha permitido adaptarlo exactamente a las necesidades del entorno (logging estructurado para Wazuh, API para el dashboard, etc.).
 
-**Aprendizajes transversales.** El proyecto ha consolidado competencias en virtualización, administración de Linux, networking (VLANs, routing, firewall), protocolos de seguridad (SIEM, IDS, honeypots), automatización de infraestructura y desarrollo Python. Igualmente relevante ha sido la experiencia en troubleshooting de sistemas complejos: la resolución de problemas reales (WAL de Prometheus corrupto, compatibilidad SMB en el honeypot, retención de backups, caracteres UTF-8 en Postfix) ha sido tan formativa como la implementación de los componentes en condiciones nominales.
+**Aprendizajes transversales:** El proyecto ha consolidado competencias en virtualización, administración de Linux, networking (VLANs, routing, firewall), protocolos de seguridad (SIEM, IDS, honeypots), automatización de infraestructura y desarrollo en Python. Igual de relevante es todo lo que hemos apredindo a raíz de todos los problemas y errores que hemos tenido.
 
-El entorno construido es reproducible, escalable y suficientemente documentado para servir como base de futuros proyectos de ciberseguridad.
-
----
-
-## 9. Trabajo futuro
-
-Las siguientes líneas de mejora han sido identificadas durante el desarrollo del proyecto y quedan pendientes para iteraciones futuras:
-
-**Honeypot**
-- Implementar una API REST Flask en VM203 para exponer las estadísticas del honeypot a sistemas externos sin depender del log en fichero.
-- Añadir un dashboard en tiempo real con WebSocket en el CT109 para visualizar los eventos del honeypot sin necesidad de recargar la página.
-- Ampliar los servicios simulados con MySQL, Redis o Telnet para capturar un mayor espectro de técnicas de ataque.
-- Integrar feeds de Threat Intelligence externos para enriquecer los eventos del honeypot con contexto sobre las IPs atacantes.
-
-**SIEM y detección**
-- Poblar las listas CDB de Wazuh con IOCs reales procedentes de fuentes públicas (AbuseIPDB, OpenPhish, MalwareBazaar).
-- Desarrollar reglas de correlación de mayor complejidad que detecten patrones de ataque multi-etapa (reconocimiento → explotación → persistencia).
-- Configurar el módulo de vulnerability assessment de Wazuh para monitorizar continuamente el estado de parcheo de todos los nodos.
-
-**Infraestructura**
-- Migrar CT101 (Grafana-Prometheus) de Debian 11 a Debian 12, eliminando la deuda técnica pendiente de actualización.
-- Actualizar Prometheus a la versión más reciente para beneficiarse de las mejoras de rendimiento y nuevas funcionalidades.
-- Configurar SSL válido en Vaultwarden mediante Let's Encrypt a través del túnel Cloudflare, sustituyendo el certificado autofirmado actual.
-
-**Automatización**
-- Desarrollar playbooks adicionales para la gestión de compliance: verificación de configuraciones de hardening, auditoría de usuarios y grupos, y revisión de permisos de ficheros críticos.
-- Implementar un sistema de tickets integrado con la plataforma SOAR para el seguimiento de incidentes de principio a fin.
-
-**Red**
-- Implementar DHCP por VLAN en OpenWRT para facilitar la incorporación de nuevos nodos sin necesidad de configuración manual de red.
-- Desplegar un segundo nodo Proxmox para explorar las capacidades de clustering y migración en vivo de VMs.
+El entorno construido es reproducible, escalable y suficientemente documentado para servir como base de futuros proyectos.
 
 ---
 
-## 10. Anexos
+## 9. Anexos
 
 ### Anexo A — Inventario completo de nodos
 
@@ -631,4 +599,4 @@ Las siguientes líneas de mejora han sido identificadas durante el desarrollo de
 
 ---
 
-*Memoria de Proyecto de Síntesis — CFGS ASIR — Centro Educativo — 2025–2026*
+*Memoria de Proyecto de Síntesis — HoneyCos — 2025–2026*
