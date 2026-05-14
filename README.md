@@ -492,7 +492,7 @@ El hardening del entorno se aplicó de forma sistemática a todos los nodos, com
 
 ### 7.11 Sistema de backups
 
-El sistema de backups utiliza la herramienta nativa de Proxmox, `vzdump`, para generar copias completas de todos los contenedores y máquinas virtuales del entorno. El proceso se automatiza mediante el script `/root/victor/backup-sync.sh`, que se ejecuta diariamente a las 2:00 mediante cron.
+El sistema de backups utiliza la herramienta nativa de Proxmox, `vzdump`, para generar copias completas de todos los contenedores y máquinas virtuales del entorno. El proceso se automatiza mediante el script `/root/backup-sync.sh`, que se ejecuta diariamente a las 2:00 mediante cron.
 
 El script realiza vzdump de todos los CTs en modo `suspend` (suspende el contenedor brevemente para garantizar consistencia) y de todas las VMs en modo `snapshot`. La compresión `zstd` reduce el tamaño de las copias manteniendo velocidades de compresión adecuadas. La opción `--maxfiles 2` limita la retención a las dos últimas copias de cada nodo, evitando el agotamiento del espacio de almacenamiento.
 
