@@ -498,8 +498,6 @@ El script realiza vzdump de todos los CTs en modo `suspend` (suspende el contene
 
 Tras el vzdump, el script ejecuta un rsync hacia el servidor de backup dedicado `honeycos-bk` (192.168.3.111), organizando los backups por fecha. Al finalizar, envía un email de resumen con el estado de cada operación (OK/FAIL por CT/VM) y el log completo, a través del relay Postfix de CT108.
 
-Durante el desarrollo del proyecto se detectó una incidencia relevante: tras una ejecución sin la opción `--maxfiles`, los backups acumulados ocuparon más de 207 GB en el almacenamiento local, aproximándose al límite del pool ZFS. La solución implicó eliminar manualmente los backups más antiguos y añadir la opción de retención a todas las llamadas de vzdump en el script.
-
 ---
 
 ## 8. Conclusiones
