@@ -1,10 +1,10 @@
 # Memoria Final
 
----
-
 **Autores:** Juan Victoria Víctor  
 **Curso:** 2025–2026  
 **Fecha:** Mayo 2026  
+
+---
 
 ## Índice
 
