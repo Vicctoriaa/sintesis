@@ -32,8 +32,6 @@
 
 ## 1. Resumen
 
-### Español
-
 El presente proyecto de síntesis describe el diseño, implementación y validación de un entorno SOC (Security Operations Center) funcional construido íntegramente sobre infraestructura virtualizada con Proxmox VE. El laboratorio replica una arquitectura empresarial real segmentada mediante VLANs gestionadas por un firewall OpenWRT, e integra las principales herramientas de la cadena de detección y respuesta ante incidentes: un SIEM basado en Wazuh, un sistema de detección de intrusiones con Suricata, monitorización de infraestructura con Prometheus y Grafana, automatización de tareas de respuesta con Ansible, y un honeypot de producción desarrollado desde cero en Python.
 
 El resultado es un entorno operativo capaz de centralizar logs y alertas, detectar amenazas en tiempo real, ejecutar respuestas automáticas ante incidentes y registrar actividad maliciosa sobre servicios señuelo.
