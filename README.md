@@ -8,7 +8,7 @@
 
 ## Índice
 
-1. [Resumen / Abstract](#1-resumen--abstract)
+1. [Resumen](#1-resumen--abstract)
 2. [Introducción](#2-introducción)
 3. [Objetivos](#3-objetivos)
 4. [Estado del arte](#4-estado-del-arte)
@@ -33,7 +33,7 @@
 
 ---
 
-## 1. Resumen / Abstract
+## 1. Resumen
 
 ### Español
 
