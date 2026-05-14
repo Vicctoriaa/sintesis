@@ -460,18 +460,6 @@ El dashboard del honeypot es un servicio independiente desplegado en CT109 (VLAN
 
 El acceso al dashboard se realiza a través del proxy Nginx en CT105 (puerto 8765), protegido con autenticación Basic Auth mediante un fichero htpasswd independiente del resto de servicios.
 
-#### Problemas encontrados y soluciones
-
-Durante el desarrollo del honeypot se encontraron varios problemas técnicos que merecen mención por su relevancia:
-
-**Persistencia de clave SSH.** paramiko genera una clave de host nueva en cada arranque del servicio, lo que hace que los clientes SSH que recuerdan la clave anterior rechacen la conexión. Se resolvió generando la clave en el primer arranque y persistiéndola en disco para reutilizarla en arranques posteriores.
-
-**Compatibilidad SMB con impacket.** La implementación SMB de impacket requiere ajustes específicos para responder correctamente a los negotiation requests de los clientes Windows modernos, que envían una lista de dialectos SMB2/3 que el servidor debe reconocer aunque no los implemente completamente.
-
-**Shell interactiva SSH.** Implementar una shell que parezca funcional sin serlo realmente requirió un sistema de respuestas predefinidas para los comandos más comunes (ls, pwd, whoami, cat, wget, curl), con logs de cada comando intentado independientemente de si tiene respuesta simulada.
-
-**Parsing de logs en Wazuh.** El formato JSON del log del honeypot tuvo que ajustarse para que el decoder JSON de Wazuh pudiera extraer correctamente los campos relevantes, especialmente el campo `action` que determina qué regla de las 100500–100508 se aplica.
-
 ### 7.9 Servicios de soporte
 
 **Nginx — proxy inverso (CT105).** Nginx actúa como punto de entrada único para todos los servicios web del laboratorio. Escucha en siete puertos distintos y redirige el tráfico hacia el servicio correspondiente, centralizando la autenticación (Homepage y Honeypot Dashboard mediante Basic Auth) y añadiendo soporte WebSocket donde es necesario (Grafana, Vaultwarden). Vaultwarden dispone de dos virtual hosts: uno HTTP en el puerto 8091 y uno HTTPS en el 8443 con certificado autofirmado.
