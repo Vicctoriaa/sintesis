@@ -328,7 +328,7 @@ Proxmox VE se instaló sobre el nodo físico `honeycos` como sistema operativo p
 - `vmbr0` como bridge estándar conectado a la interfaz física, asignándole la IP de gestión `192.168.3.200/24`. Por él entra y sale el tráfico hacia Internet y la red doméstica.
 - `vmbr1` como bridge VLAN-aware sin IP asignada y sin puertos físicos. Actúa como trunk virtual que transporta el tráfico etiquetado de las cinco VLANs hacia OpenWRT y entre los contenedores.
 
-El NAT entre la red interna y el exterior se gestiona mediante reglas iptables persistidas con `netfilter-persistent`, que redirigen puertos específicos desde `vmbr0` hacia los servicios correspondientes en la red interna.
+El NAT entre la red interna y el exterior se gestiona mediante reglas iptables persistentes con `netfilter-persistent`, que redirigen puertos específicos desde `vmbr0` hacia los servicios correspondientes en la red interna.
 
 La elección de Proxmox frente a otras alternativas como VMware ESXi (de pago tras la adquisición por Broadcom) o VirtualBox (sin soporte empresarial nativo de LXC) se justifica por su coste cero, su capacidad de gestionar LXC y KVM de forma unificada, y su interfaz web completa para la administración del entorno.
 
