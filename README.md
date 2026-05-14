@@ -350,7 +350,7 @@ El servicio DNS interno (CT 103) resuelve los nombres de todos los servicios del
 
 Bind9 opera como servidor maestro autoritativo para dos zonas: la zona directa `soc.local` (resolución nombre → IP) y la zona inversa `1.1.10.in-addr.arpa` (resolución IP → nombre). Para las consultas externas actúa como forwarder hacia los resolvers públicos de Google (8.8.8.8) y Cloudflare (1.1.1.1).
 
-La configuración restringe la recursión a la red interna `10.1.1.0/24`, evitando que el servidor pueda ser utilizado como open resolver desde el exterior. El canal de estadísticas interno en el puerto 8080 es consumido por el `bind_exporter`, que expone las métricas DNS en formato Prometheus para su visualización en Grafana.
+La configuración restringe la recursión a la red interna `10.1.1.0/24`, evitando que el servidor pueda ser utilizado como open resolver desde el exterior. El canal de estadísticas interno en el puerto 8080 es consumido por el `bind_exporter`, que expone las métricas DNS con Prometheus para su visualización en Grafana.
 
 CT103 tiene además un rol fundamental en el sistema de automatización: al ser el nodo ejecutor de Ansible, concentra tanto la resolución DNS del entorno como la capacidad de actuar sobre cualquier nodo mediante playbooks. Esta decisión de diseño simplifica la arquitectura de respuesta automática, ya que el SIEM solo necesita comunicarse con un único punto de ejecución.
 
