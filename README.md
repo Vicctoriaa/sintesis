@@ -52,8 +52,6 @@ Sin embargo, el acceso a entornos SOC reales con fines formativos es limitado. L
 
 Este proyecto surge con el objetivo de cerrar esa brecha: construir desde cero, sobre hardware convencional y herramientas de código abierto, un entorno SOC completamente funcional que reproduzca los componentes, la arquitectura y los flujos de trabajo de un despliegue empresarial real. El entorno no se limita a la instalación de herramientas; incluye el diseño de la red, la segmentación de tráfico por VLANs, la integración entre componentes, la automatización de respuestas y el desarrollo de un honeypot propio que actúa como cebo para atacantes reales.
 
-El proyecto ha sido desarrollado por un equipo de tres personas con distribución real de tareas, simulando el trabajo colaborativo propio de un equipo de operaciones de seguridad.
-
 ---
 
 ## 3. Objetivos
