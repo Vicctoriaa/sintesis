@@ -394,12 +394,12 @@ La decisión de ejecutar Prometheus como binario systemd en lugar de en Docker s
 
 **Grafana** se conecta a Prometheus como datasource predeterminado y ofrece cuatro dashboards principales:
 
-- **Node Exporter Full** (UID 1860): CPU, RAM, disco y red de todos los nodos del entorno en una única vista comparativa.
-- **Bind9 Exporter DNS**: queries DNS procesadas, respuestas NXDOMAIN (indicadores de configuración incorrecta o reconocimiento) y latencia de resolución.
-- **Suricata IDS — SOC honeycos**: alertas del IDS por firma, tráfico analizado, distribución de protocolos y memoria del motor.
-- **Honeypot VM203**: métricas de sistema del honeypot con contexto de la actividad de atacantes (conexiones activas, tráfico de red, uptime).
+- **Node Exporter Full**: CPU, RAM, disco y red de todos los nodos del entorno en una única vista comparativa.
+- **Bind9 Exporter DNS**: Consultas DNS procesadas, respuestas NXDOMAIN y latencia de resolución.
+- **Suricata IDS — SOC honeycos**: Alertas del IDS por firma, tráfico analizado, distribución de protocolos y memoria del motor.
+- **Honeypot VM203**: Métricas de sistema del honeypot con contexto de la actividad de atacantes (conexiones activas, tráfico de red, uptime).
 
-El acceso a Grafana desde la red de gestión se realiza a través del proxy inverso Nginx en CT105, que también gestiona el WebSocket necesario para las actualizaciones en tiempo real de los dashboards (Grafana Live).
+El acceso a Grafana desde la red de gestión se realiza a través del proxy inverso Nginx en CT105, que también gestiona el WebSocket necesario para las actualizaciones en tiempo real de los dashboards.
 
 ### 7.7 Automatización — Ansible y Playbooks
 
